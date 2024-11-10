@@ -1,0 +1,23 @@
+data-product/
+├── infrastructure/
+│   ├── __init__.py
+│   └── pulumi/
+│       └── __main__.py
+├── src/
+│   ├── api/
+│   │   ├── __init__.py
+│   │   ├── admin.py
+│   │   ├── operations.py
+│   │   └── monitoring.py
+│   ├── auth/
+│   │   ├── __init__.py
+│   │   └── jwt_handler.py
+│   ├── database/
+│   │   ├── __init__.py
+│   │   └── duckdb_manager.py
+│   └── main.py
+├── tests/
+│   └── __init__.py
+├── Dockerfile
+├── requirements.txt
+└── README.md 

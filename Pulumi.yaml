@@ -1,0 +1,6 @@
+name: data-product
+runtime:
+  name: python
+  options:
+    virtualenv: venv
+description: A Docker deployment for the data product API 
