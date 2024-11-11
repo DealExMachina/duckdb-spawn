@@ -1,6 +1,17 @@
 # Project Finance Data Product
 
 A streamlined data product for managing project finance portfolios.
+This is a case study for a streamlined creation and management of simple data product.
+It is using Pulumi, Docker as infra, and Prometheus for observability.
+
+The routes to CRUD are protected with JWT tokens.
+
+The current db is using FIBO ontologies to describe projects to be financed.
+It will include requirements for providing non financial performance.
+
+
+
+
 
 ## Quick Start
 
