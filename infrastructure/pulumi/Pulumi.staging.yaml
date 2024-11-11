@@ -1,0 +1,8 @@
+config:
+  duckdb-spawn:apiPort: 8000
+  duckdb-spawn:prometheusPort: 9090
+  duckdb-spawn:environment: staging
+  duckdb-spawn:logLevel: info
+  duckdb-spawn:resourceLimits:
+    cpu: "1.0"
+    memory: "1Gi"

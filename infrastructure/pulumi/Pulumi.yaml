@@ -1,9 +1,6 @@
 name: duckdb-spawn
-runtime: python
-description: A Pulumi project for duckdb-spawn infrastructure
-project:
-  name: duckdb-spawn
-  runtime: python
-  description: A Pulumi project for duckdb-spawn infrastructure
-  backend:
-    url: file://~
+runtime:
+  name: python
+  options:
+    virtualenv: .venv
+description: A Docker deployment for the DuckDB-SPAWN data product
