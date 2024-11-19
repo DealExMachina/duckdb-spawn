@@ -41,6 +41,12 @@ cleanup_containers() {
     docker rm -f duckdb-spawn-api prometheus 2>/dev/null || true
 }
 
+# Set Docker context and platform
+setup_docker() {
+    echo "Setting Docker platform..."
+    export DOCKER_DEFAULT_PLATFORM=linux/arm64
+}
+
 # Main deployment
 deploy() {
     local STACK=$1
@@ -57,6 +63,7 @@ deploy() {
 main() {
     check_requirements
     setup_venv
+    setup_docker
     cleanup_containers
     deploy "$1"
 }
