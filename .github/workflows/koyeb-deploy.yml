@@ -20,9 +20,12 @@ jobs:
         run: |
           curl -fsSL https://raw.githubusercontent.com/koyeb/koyeb-cli/master/install.sh | sh
           koyeb --version
+          echo 'export PATH="$HOME/.koyeb/bin:$PATH"' >> $GITHUB_ENV
 
       - name: Login to Koyeb
-        run: koyeb login ${{ secrets.KOYEB_API_TOKEN }}
+        env:
+          KOYEB_API_TOKEN: ${{ secrets.KOYEB_API_TOKEN }}
+        run: koyeb login
 
       - name: Build and Deploy to Koyeb
         run: |
