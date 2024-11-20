@@ -1,35 +1,42 @@
-name: Deploy to Koyeb
+name: Deploy to Koyeb Staging
 
 on:
   push:
     branches:
-      - main
-
-env:
-  KOYEB_APP_NAME: duckdb-spawn
-  KOYEB_SERVICE_NAME: api
+      - main  # Or your staging branch
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
+
     steps:
+      # Step 1: Checkout the code
       - name: Checkout code
         uses: actions/checkout@v3
 
+      # Step 2: Install the Koyeb CLI
       - name: Install Koyeb CLI
         run: |
           curl -sSL https://get.koyeb.com | bash
-          echo 'Adding Koyeb CLI to PATH'
-          echo "$HOME/.koyeb/bin" >> $GITHUB_PATH
+          echo "Adding Koyeb CLI to PATH"
+          echo "PATH=$HOME/.koyeb/bin:$PATH" >> $GITHUB_ENV
 
-      - name: Verify Koyeb CLI Installation
-        run: koyeb --version
+      # Step 3: Source Updated PATH
+      - name: Update PATH
+        run: |
+          source $GITHUB_ENV
+          echo "PATH after update: $PATH"
+          ls -l $HOME/.koyeb/bin
+          koyeb --version  # Verify installation
 
+      # Step 4: Authenticate with Koyeb
       - name: Authenticate with Koyeb
         env:
           KOYEB_API_TOKEN: ${{ secrets.KOYEB_API_TOKEN }}
-        run: koyeb login --api-token $KOYEB_API_TOKEN
+        run: |
+          koyeb login --api-token $KOYEB_API_TOKEN
 
+      # Step 5: Deploy to Koyeb
       - name: Deploy to Koyeb
         env:
           KOYEB_API_TOKEN: ${{ secrets.KOYEB_API_TOKEN }}
