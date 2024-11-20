@@ -1,0 +1,39 @@
+name: Deploy to Koyeb
+
+on:
+  push:
+    branches:
+      - main
+
+env:
+  KOYEB_APP_NAME: duckdb-spawn
+  KOYEB_SERVICE_NAME: api
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Install Koyeb CLI
+        run: |
+          curl -fsSL https://cli.koyeb.com/install.sh | sh
+          koyeb --version
+
+      - name: Login to Koyeb
+        run: koyeb login ${{ secrets.KOYEB_API_TOKEN }}
+
+      - name: Build and Deploy to Koyeb
+        run: |
+          koyeb service update $KOYEB_APP_NAME/$KOYEB_SERVICE_NAME \
+            --docker ${{ github.repository }}:${{ github.sha }} \
+            --ports 8000:8000 \
+            --env DATABASE_URL=/data/duckdb_spawn.db \
+            --env PYTHONUNBUFFERED=1 \
+            --env LOG_LEVEL=info \
+            --env ENVIRONMENT=staging \
+            --memory 512Mi \
+            --cpu 0.1 \
+            --region fra \
+            --instance-type nano 
