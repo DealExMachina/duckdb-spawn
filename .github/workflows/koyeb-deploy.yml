@@ -20,8 +20,10 @@ jobs:
         run: |
           curl -sSL https://get.koyeb.com | bash
           echo 'Adding Koyeb CLI to PATH'
-          echo "PATH=$HOME/.koyeb/bin:\$PATH" >> $GITHUB_ENV
-
+          echo "$HOME/.koyeb/bin" >> $GITHUB_PATH
+          
+      - name: Verify Koyeb CLI Installation
+        run: koyeb --version
       # Step 3: Authenticate with Koyeb
       - name: Authenticate with Koyeb
         env:
