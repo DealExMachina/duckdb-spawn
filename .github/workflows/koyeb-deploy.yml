@@ -32,7 +32,7 @@ jobs:
             --env DATABASE_URL=/data/duckdb_spawn.db \
             --env PYTHONUNBUFFERED=1 \
             --env LOG_LEVEL=info \
-            --env ENVIRONMENT=staging \
+            --env ENVIRONMENT=Staging \
             --memory 512Mi \
             --cpu 0.1 \
             --region fra \
