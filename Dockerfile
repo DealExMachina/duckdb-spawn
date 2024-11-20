@@ -8,11 +8,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     netcat-traditional \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy only the application requirements file
+# Copy requirements first for better caching
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy the application source code only (excluding infrastructure)
+# Copy the application source code
 COPY src/ src/
 
 # Create directories for data and logs with proper permissions
@@ -31,8 +31,7 @@ HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
 
 # Set environment variables
 ENV PYTHONPATH=/app \
-    PYTHONUNBUFFERED=1 \
-    DATABASE_URL=/data/duckdb_spawn.db
+    PYTHONUNBUFFERED=1
 
 # Run the application
-CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000", "--log-level", "info"]
+CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000"]
