@@ -20,7 +20,7 @@ jobs:
         run: |
           curl -sSL https://get.koyeb.com | bash
           echo 'Adding Koyeb CLI to PATH'
-          echo 'export PATH="$HOME/.koyeb/bin:$PATH"' >> $GITHUB_ENV
+          echo "PATH=$HOME/.koyeb/bin:\$PATH" >> $GITHUB_ENV
 
       # Step 3: Authenticate with Koyeb
       - name: Authenticate with Koyeb
