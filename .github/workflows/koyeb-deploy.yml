@@ -31,7 +31,7 @@ jobs:
         env:
           KOYEB_API_TOKEN: ${{ secrets.KOYEB_API_TOKEN }}
         run: |
-          koyeb login --api-token $KOYEB_API_TOKEN
+          koyeb login --token $KOYEB_API_TOKEN
 
       # Step 5: Deploy to Koyeb
       - name: Deploy to Koyeb
