@@ -18,7 +18,7 @@ jobs:
 
       - name: Install Koyeb CLI
         run: |
-          curl -sSL https://get.koyeb.com | bash
+          curl -fsSL https://raw.githubusercontent.com/koyeb/koyeb-cli/master/install.sh | sh
           koyeb --version
 
       - name: Login to Koyeb
