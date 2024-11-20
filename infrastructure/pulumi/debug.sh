@@ -1,51 +1,19 @@
 #!/bin/bash
-set -e
 
-# Function to get container ID
-get_container_id() {
-    local CONTAINER_NAME=$1
-    docker ps -q -f name=$CONTAINER_NAME
-}
+echo "Checking container status..."
+docker ps -a | grep duckdb-spawn
 
-# Function to tail logs
-tail_logs() {
-    local CONTAINER_ID=$(get_container_id "duckdb-spawn-api")
-    if [ -n "$CONTAINER_ID" ]; then
-        echo "Tailing logs for duckdb-spawn-api..."
-        docker logs -f $CONTAINER_ID
-    else
-        echo "Container duckdb-spawn-api is not running"
-        exit 1
-    fi
-}
+echo -e "\nChecking container logs..."
+docker logs duckdb-spawn-api
 
-# Function to get a shell
-get_shell() {
-    local CONTAINER_ID=$(get_container_id "duckdb-spawn-api")
-    if [ -n "$CONTAINER_ID" ]; then
-        echo "Opening shell in duckdb-spawn-api..."
-        docker exec -it $CONTAINER_ID /bin/sh
-    else
-        echo "Container duckdb-spawn-api is not running"
-        exit 1
-    fi
-}
+echo -e "\nChecking API health..."
+curl -f http://localhost:8000/monitoring/health || echo "API health check failed"
 
-# Show usage
-usage() {
-    echo "Usage: $0 [logs|shell]"
-    exit 1
-}
+echo -e "\nChecking Prometheus metrics..."
+curl -f http://localhost:8000/metrics || echo "Metrics endpoint failed"
 
-# Main
-case "$1" in
-    logs)
-        tail_logs
-        ;;
-    shell)
-        get_shell
-        ;;
-    *)
-        usage
-        ;;
-esac 
+echo -e "\nChecking directory permissions..."
+ls -la data logs
+
+echo -e "\nChecking if ports are in use..."
+netstat -tulpn | grep -E '8000|9090' 
