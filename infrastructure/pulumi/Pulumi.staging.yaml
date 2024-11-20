@@ -1,8 +1,16 @@
 config:
-  duckdb-spawn:apiPort: 8000
-  duckdb-spawn:prometheusPort: 9090
-  duckdb-spawn:environment: staging
-  duckdb-spawn:logLevel: info
+  duckdb-spawn:apiPort: "8000"
+  duckdb-spawn:prometheusPort: "9090"
+  duckdb-spawn:environment: "staging"
+  duckdb-spawn:logLevel: "info"
   duckdb-spawn:resourceLimits:
-    cpu: "1.0"
-    memory: "1Gi"
+    memory: "536870912"
+    cpuShares: "100"
+  docker:context: "desktop-linux"
+  koyeb:
+    app_name: "duckdb-spawn"
+    service_name: "api"
+    instance_type: "nano"
+    regions: ["fra"]
+    ports:
+      - "8000:8000"
