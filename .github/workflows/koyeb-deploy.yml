@@ -22,21 +22,18 @@ jobs:
           echo 'Adding Koyeb CLI to PATH'
           echo 'export PATH="$HOME/.koyeb/bin:$PATH"' >> $GITHUB_ENV
 
-      - name: Login to Koyeb
+      # Step 3: Authenticate with Koyeb
+      - name: Authenticate with Koyeb
         env:
           KOYEB_API_TOKEN: ${{ secrets.KOYEB_API_TOKEN }}
-        run: koyeb login
-
-      - name: Build and Deploy to Koyeb
         run: |
-          koyeb service update $KOYEB_APP_NAME/$KOYEB_SERVICE_NAME \
-            --docker ${{ github.repository }}:${{ github.sha }} \
-            --ports 8000:8000 \
-            --env DATABASE_URL=/data/duckdb_spawn.db \
-            --env PYTHONUNBUFFERED=1 \
-            --env LOG_LEVEL=info \
-            --env ENVIRONMENT=Staging \
-            --memory 512Mi \
-            --cpu 0.1 \
-            --region fra \
-            --instance-type nano 
+          source $GITHUB_ENV
+          koyeb login --api-token $KOYEB_API_TOKEN
+
+      # Step 4: Deploy to Koyeb
+      - name: Deploy to Koyeb
+        env:
+          KOYEB_API_TOKEN: ${{ secrets.KOYEB_API_TOKEN }}
+        run: |
+          source $GITHUB_ENV
+          koyeb apps list
