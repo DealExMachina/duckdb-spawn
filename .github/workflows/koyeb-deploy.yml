@@ -20,7 +20,15 @@ jobs:
           curl -fsSL https://raw.githubusercontent.com/koyeb/koyeb-cli/master/install.sh | sh
           echo "$HOME/.koyeb/bin" >> $GITHUB_PATH
 
-      # Step 3: Verify Koyeb CLI Installation
+      # Step 3: Create Koyeb Configuration File
+      - name: Create Koyeb Config
+        env:
+          KOYEB_API_TOKEN: ${{ secrets.KOYEB_API_TOKEN }}
+        run: |
+          mkdir -p ~/.koyeb
+          echo "token: $KOYEB_API_TOKEN" > ~/.koyeb.yaml
+
+      # Step 4: Verify Koyeb CLI Installation
       - name: Verify Koyeb CLI Installation
         run: |
           koyeb version
@@ -28,6 +36,4 @@ jobs:
 
       # Step 5: Deploy to Koyeb
       - name: Deploy to Koyeb
-        env:
-          KOYEB_API_TOKEN: ${{ secrets.KOYEB_API_TOKEN }}
         run: koyeb apps list
