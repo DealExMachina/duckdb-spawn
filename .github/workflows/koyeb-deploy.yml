@@ -1,4 +1,4 @@
-name: Deploy to Koyeb Staging
+name: Deploy to Koyeb
 
 on:
   push:
@@ -18,16 +18,13 @@ jobs:
       - name: Install Koyeb CLI
         run: |
           curl -fsSL https://raw.githubusercontent.com/koyeb/koyeb-cli/master/install.sh | sh
-          echo "Adding Koyeb CLI to PATH"
-          echo "PATH=$HOME/.koyeb/bin:$PATH" >> $GITHUB_ENV
+          echo "$HOME/.koyeb/bin" >> $GITHUB_PATH
 
-      # Step 3: Source Updated PATH
-      - name: Update PATH
+      # Step 3: Verify Koyeb CLI Installation
+      - name: Verify Koyeb CLI Installation
         run: |
-          source $GITHUB_ENV
-          echo "PATH after update: $PATH"
+          koyeb --version
           ls -l $HOME/.koyeb/bin
-          koyeb --version  # Verify installation
 
       # Step 4: Authenticate with Koyeb
       - name: Authenticate with Koyeb
