@@ -23,7 +23,7 @@ jobs:
       # Step 3: Verify Koyeb CLI Installation
       - name: Verify Koyeb CLI Installation
         run: |
-          koyeb --version
+          koyeb version
           ls -l $HOME/.koyeb/bin
 
       # Step 4: Authenticate with Koyeb
