@@ -26,13 +26,6 @@ jobs:
           koyeb version
           ls -l $HOME/.koyeb/bin
 
-      # Step 4: Authenticate with Koyeb
-      - name: Authenticate with Koyeb
-        env:
-          KOYEB_API_TOKEN: ${{ secrets.KOYEB_API_TOKEN }}
-        run: |
-          koyeb login --token "{$KOYEB_API_TOKEN}"
-
       # Step 5: Deploy to Koyeb
       - name: Deploy to Koyeb
         env:
