@@ -17,7 +17,7 @@ jobs:
       # Step 2: Install the Koyeb CLI
       - name: Install Koyeb CLI
         run: |
-          curl -sSL https://get.koyeb.com | bash
+          curl -fsSL https://raw.githubusercontent.com/koyeb/koyeb-cli/master/install.sh | sh
           echo "Adding Koyeb CLI to PATH"
           echo "PATH=$HOME/.koyeb/bin:$PATH" >> $GITHUB_ENV
 
