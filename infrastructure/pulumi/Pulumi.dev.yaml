@@ -7,4 +7,8 @@ config:
     memory: "536870912"
     cpuShares: "100"
   duckdb-spawn:containerRegistry: localhost:5001
-  docker:context: "desktop-linux"
+  docker: "desktop-linux"
+
+networks:
+  registry:
+    driver: bridge
