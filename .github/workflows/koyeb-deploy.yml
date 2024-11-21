@@ -50,7 +50,12 @@ jobs:
           mkdir -p $HOME/.koyeb
           echo "token: ${{ secrets.KOYEB_TOKEN }}" > $HOME/.koyeb/config.yaml
 
-      - name: Deploy to Koyeb
+      - name: Create and Deploy to Koyeb
         env:
           GITHUB_SHA: ${{ github.sha }}
-        run: koyeb app deploy koyeb.yaml
+        run: |
+          # Create the app if it doesn't exist
+          koyeb apps create $KOYEB_APP_NAME --output json || true
+          
+          # Deploy using the configuration file
+          koyeb apps init $KOYEB_APP_NAME -f koyeb.yaml
