@@ -51,5 +51,5 @@ jobs:
         run: |
           # Create app using token directly
           
-          koyeb app create -c koyeb.yaml
+          koyeb app init -c ./koyeb.yaml
           
