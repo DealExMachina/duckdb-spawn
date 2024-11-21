@@ -1,31 +1,17 @@
 name: duckdb-spawn
 services:
   - name: api
-    type: web
-    instance_type: nano
-    regions: 
-      - fra
-    ports:
-      - port: 8000
-        protocol: http
-    env:
-      - key: DATABASE_URL
-        value: /data/duckdb_spawn.db
-      - key: PYTHONUNBUFFERED
-        value: "1"
-      - key: LOG_LEVEL
-        value: info
-      - key: ENVIRONMENT
-        value: staging
+    type: docker
     docker:
-      image: ${DOCKER_HUB_USERNAME}/duckdb-spawn:${GITHUB_SHA}
-    scaling:
-      min_instances: 1
-      max_instances: 1
-    routes:
-      - path: /
+      image: ${{ secrets.DOCKER_HUB_USERNAME }}/${{ env.DOCKER_IMAGE_NAME }}:latest
+    ports:
+      - name: http
         port: 8000
-    healthcheck:
-      port: 8000
-      path: /monitoring/health
-      initial_delay: 30s
+    env:
+      - name: DATABASE_URL
+        value: /data/duckdb_spawn.db
+    resources:
+      cpu: 500m
+      memory: 512Mi
+    regions:
+      - fra
