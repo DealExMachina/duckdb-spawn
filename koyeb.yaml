@@ -1,7 +1,7 @@
 name: duckdb-spawn
 services:
   - name: api
-    type: web
+    type: docker
     instance_type: nano
     regions:
       - fra
