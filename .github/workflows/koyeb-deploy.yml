@@ -53,12 +53,15 @@ jobs:
 
       - name: Deploy to Koyeb
         run: |
-          koyeb services update $KOYEB_APP_NAME/$KOYEB_SERVICE_NAME \
-            --image ${{ secrets.DOCKER_HUB_USERNAME }}/${{ env.DOCKER_IMAGE_NAME }}:${{ github.sha }} \
-            --port 8000 \
+          koyeb app create $KOYEB_APP_NAME || true
+          koyeb service create $KOYEB_SERVICE_NAME \
+            --app $KOYEB_APP_NAME \
+            --type web \
+            --docker ${{ secrets.DOCKER_HUB_USERNAME }}/${{ env.DOCKER_IMAGE_NAME }}:${{ github.sha }} \
+            --ports 8000 \
             --env DATABASE_URL=/data/duckdb_spawn.db \
             --env PYTHONUNBUFFERED=1 \
             --env LOG_LEVEL=info \
             --env ENVIRONMENT=staging \
-            --resources-type nano \
-            --regions fra
+            --region fra \
+            --instance-size nano
