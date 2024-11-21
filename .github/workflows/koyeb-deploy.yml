@@ -47,7 +47,7 @@ jobs:
           echo "$HOME/.koyeb/bin" >> $GITHUB_PATH
 
       - name: Login to Koyeb
-        run: koyeb login ${{ secrets.KOYEB_TOKEN }}
+        run: koyeb login -- token ${{ secrets.KOYEB_TOKEN }}
 
       - name: Deploy to Koyeb
         run: |
