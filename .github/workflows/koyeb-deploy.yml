@@ -50,5 +50,6 @@ jobs:
           GITHUB_SHA: ${{ github.sha }}
         run: |
           # Create app using token directly
-          koyeb --token ${{ secrets.KOYEB_TOKEN }} apps init $KOYEB_APP_NAME || true
+          
+          koyeb service deploy -f koyeb.yaml --token $KOYEB_API_TOKEN
           
