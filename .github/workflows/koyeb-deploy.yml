@@ -46,8 +46,10 @@ jobs:
           curl -fsSL https://raw.githubusercontent.com/koyeb/koyeb-cli/master/install.sh | sh
           echo "$HOME/.koyeb/bin" >> $GITHUB_PATH
 
-      - name: Login to Koyeb
-        run: koyeb login -- token ${{ secrets.KOYEB_TOKEN }}
+      - name: Setup Koyeb configuration
+        run: |
+          mkdir -p $HOME/.koyeb
+          echo "token: ${{ secrets.KOYEB_TOKEN }}" > $HOME/.koyeb/config.yaml
 
       - name: Deploy to Koyeb
         run: |
