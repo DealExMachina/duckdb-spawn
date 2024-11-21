@@ -48,5 +48,5 @@ jobs:
       - name: Deploy to Koyeb
         # Create an app on Koyeb using the koyeb.yaml file located in the root directory
         run: |
-          koyeb app init -c ./koyeb.yaml 
+          koyeb app init duckdb-spwan  -c ./koyeb.yaml 
           koyeb service redeploy ${{ env.KOYEB_APP_NAME }}/api
