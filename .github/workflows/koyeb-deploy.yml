@@ -49,5 +49,4 @@ jobs:
         env:
           GITHUB_SHA: ${{ github.sha }}
         run: |
-          koyeb --token ${{ secrets.KOYEB_TOKEN }} apps init --config ./koyeb.yaml
-          
+            koyeb --token ${{ secrets.KOYEB_TOKEN }} service deploy --config ./koyeb.yaml
