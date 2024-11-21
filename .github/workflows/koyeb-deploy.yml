@@ -9,7 +9,6 @@ env:
   DOCKER_HUB_USERNAME: ${{ secrets.DOCKER_HUB_USERNAME }}
   DOCKER_IMAGE_NAME: duckdb-spawn
   KOYEB_APP_NAME: duckdb-spawn
-  KOYEB_SERVICE_NAME: api
 
 jobs:
   build-and-deploy:
@@ -52,16 +51,6 @@ jobs:
           echo "token: ${{ secrets.KOYEB_TOKEN }}" > $HOME/.koyeb/config.yaml
 
       - name: Deploy to Koyeb
-        run: |
-          koyeb app create $KOYEB_APP_NAME || true
-          koyeb service create $KOYEB_SERVICE_NAME \
-            --app $KOYEB_APP_NAME \
-            --type web \
-            --docker ${{ secrets.DOCKER_HUB_USERNAME }}/${{ env.DOCKER_IMAGE_NAME }}:${{ github.sha }} \
-            --ports 8000 \
-            --env DATABASE_URL=/data/duckdb_spawn.db \
-            --env PYTHONUNBUFFERED=1 \
-            --env LOG_LEVEL=info \
-            --env ENVIRONMENT=staging \
-            --region fra \
-            --instance-size nano
+        env:
+          GITHUB_SHA: ${{ github.sha }}
+        run: koyeb app deploy koyeb.yaml
