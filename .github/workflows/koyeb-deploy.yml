@@ -45,17 +45,10 @@ jobs:
           curl -fsSL https://raw.githubusercontent.com/koyeb/koyeb-cli/master/install.sh | sh
           echo "$HOME/.koyeb/bin" >> $GITHUB_PATH
 
-      - name: Setup Koyeb configuration
-        run: |
-          mkdir -p $HOME/.koyeb
-          echo "token: ${{ secrets.KOYEB_TOKEN }}" > $HOME/.koyeb.yaml
-
-      - name: Create and Deploy to Koyeb
+      - name: Deploy to Koyeb
         env:
           GITHUB_SHA: ${{ github.sha }}
         run: |
-          # Create the app if it doesn't exist
-          koyeb apps create $KOYEB_APP_NAME --token ${{ secrets.KOYEB_TOKEN }} || true
+          # Create app using token directly
+          koyeb --token ${{ secrets.KOYEB_TOKEN }} apps init $KOYEB_APP_NAME || true
           
-          # Deploy using the configuration file
-          koyeb apps init $KOYEB_APP_NAME --file ./koyeb.yaml --token ${{ secrets.KOYEB_TOKEN }}
