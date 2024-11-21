@@ -51,5 +51,5 @@ jobs:
         run: |
           # Create app using token directly
           
-          koyeb service deploy -f koyeb.yaml --token $KOYEB_API_TOKEN
+          koyeb app create -c koyeb.yaml --token $KOYEB_API_TOKEN
           
