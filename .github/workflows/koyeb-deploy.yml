@@ -44,10 +44,9 @@ jobs:
         run: |
           curl -fsSL https://raw.githubusercontent.com/koyeb/koyeb-cli/master/install.sh | sh
           echo "$HOME/.koyeb/bin" >> $GITHUB_PATH
-          
+
       - name: Deploy to Koyeb
-        uses: koyeb/action-git-deploy@v1
-        with:
-            app_name: ${{ env.KOYEB_APP_NAME }}
-            token: ${{ secrets.KOYEB_TOKEN }}
-            config_file: ./koyeb.yaml
+        # Create an app on Koyeb using the koyeb.yaml file located in the root directory
+        run: |
+          koyeb app init -c ./koyeb.yaml --token ${{ secrets.KOYEB_TOKEN }}
+          koyeb service redeploy ${{ env.KOYEB_APP_NAME }}/api
