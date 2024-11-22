@@ -44,21 +44,7 @@ A data product API for project financing using DuckDB, FastAPI, and Prometheus m
 
 Instructions to deploy the application on Koyeb.
 
-1. **Create a Koyeb account**: If you don't have one, sign up at [Koyeb](https://www.koyeb.com).
-
-2. **Create a new service**:
-   - Go to the Koyeb dashboard.
-   - Click on "Create Service".
-   - Select "Docker" as the deployment method.
-
-3. **Configure the service**:
-   - Enter your Docker image name (e.g., `yourusername/yourproject`).
-   - Set the port to `8000`.
-
-4. **Deploy the service**:
-   - Click "Deploy" to start the deployment process.
-
-5. **Access the application**: Once deployed, Koyeb will provide a URL to access your application.
+This project is using [koyeb-git-action](https://github.com/koyeb/action-git-deploy) to deploy the application.
 
 ## Monitoring
 

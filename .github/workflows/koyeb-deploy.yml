@@ -29,13 +29,13 @@ jobs:
           tags: ${{ secrets.DOCKER_HUB_USERNAME }}/duckdb-spawn:${{ github.sha }}
 
       - name: Deploy to Koyeb
-        uses: koyeb/action-git-deploy@v1
+        uses: koyeb/action-git-deploy@v2
         with:
-          api-token: "${{ secrets.KOYEB_API_TOKEN }}"
-          app-name: duckdb-spawn
-          service-name: api
-          service-type: web
-          docker-image: ${{ secrets.DOCKER_HUB_USERNAME }}/duckdb-spawn:${{ github.sha }}
+          app_name: duckdb-spawn
+          service_name: api
+          service_type: web
+          token: "${{ secrets.KOYEB_API_TOKEN }}"
+          image: ${{ secrets.DOCKER_HUB_USERNAME }}/duckdb-spawn:${{ github.sha }}
           service-env: DATABASE_URL=/data/duckdb_spawn.db,PYTHONUNBUFFERED=1,LOG_LEVEL=info,ENVIRONMENT=staging
           service-ports: 8000:http
           service-routes: /:8000
