@@ -29,7 +29,7 @@ jobs:
           tags: ${{ secrets.DOCKER_HUB_USERNAME }}/duckdb-spawn:${{ github.sha }}
 
       - name: Deploy to Koyeb
-        uses: koyeb/action-git-deploy@v2
+        uses: koyeb/action-git-deploy@v1
         with:
           app_name: duckdb-spawn
           service_name: api
