@@ -9,7 +9,7 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
+      - name: Checkout
         uses: actions/checkout@v3
 
       - name: Set up Docker Buildx
@@ -34,10 +34,14 @@ jobs:
           api-token: "${{ secrets.KOYEB_API_TOKEN }}"
           app-name: duckdb-spawn
           service-name: api
+          service-type: web
           docker-image: ${{ secrets.DOCKER_HUB_USERNAME }}/duckdb-spawn:${{ github.sha }}
-          service-env: "DATABASE_URL=/data/duckdb_spawn.db,PYTHONUNBUFFERED=1,LOG_LEVEL=info,ENVIRONMENT=staging"
-          service-ports: "8000:http"
-          service-routes: "/:8000"
-          service-instance-type: "nano"
-          service-regions: "fra"
+          service-env: DATABASE_URL=/data/duckdb_spawn.db,PYTHONUNBUFFERED=1,LOG_LEVEL=info,ENVIRONMENT=staging
+          service-ports: 8000:http
+          service-routes: /:8000
+          service-instance-type: nano
+          service-regions: fra
+          build-timeout: 900
+          healthy-timeout: 900
+          git-builder: docker
           
