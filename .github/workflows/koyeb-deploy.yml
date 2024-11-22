@@ -12,22 +12,32 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Install and configure Koyeb CLI
-        uses: koyeb-community/koyeb-actions@v2
-        with:
-          api_token: "${{ secrets.KOYEB_API_TOKEN }}"
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
 
-      - name: Build and deploy to Koyeb
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKER_HUB_USERNAME }}
+          password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          push: true
+          tags: ${{ secrets.DOCKER_HUB_USERNAME }}/duckdb-spawn:${{ github.sha }}
+
+      - name: Deploy to Koyeb
         uses: koyeb/action-git-deploy@v1
         with:
+          api-token: "${{ secrets.KOYEB_API_TOKEN }}"
           app-name: duckdb-spawn
           service-name: api
-          service-env: "PYTHONUNBUFFERED=1,LOG_LEVEL=info,ENVIRONMENT=staging"
+          docker-image: ${{ secrets.DOCKER_HUB_USERNAME }}/duckdb-spawn:${{ github.sha }}
+          service-env: "DATABASE_URL=/data/duckdb_spawn.db,PYTHONUNBUFFERED=1,LOG_LEVEL=info,ENVIRONMENT=staging"
           service-ports: "8000:http"
           service-routes: "/:8000"
           service-instance-type: "nano"
           service-regions: "fra"
-          service-checks: "8000:http:/monitoring/health"
-          git-branch: main
-          git-builder: docker
           

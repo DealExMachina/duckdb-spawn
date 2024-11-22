@@ -1,7 +1,7 @@
 name: duckdb-spawn
 services:
   - name: api
-    type: docker
+    type: container
     instance_type: nano
     regions:
       - fra
@@ -17,8 +17,9 @@ services:
         value: info
       - key: ENVIRONMENT
         value: staging
-    docker:
+    container:
       image: ${DOCKER_HUB_USERNAME}/duckdb-spawn:${GITHUB_SHA}
+      registry: docker
     scaling:
       min_instances: 1
       max_instances: 1
