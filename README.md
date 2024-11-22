@@ -1,67 +1,99 @@
-# Project Finance Data Product
+# DuckDB-SPAWN Data Product
 
-A streamlined data product for managing project finance portfolios.
-This is a case study for a streamlined creation and management of simple data product.
-It is using Pulumi, Docker as infra, and Prometheus for observability.
+A data product API for project financing using DuckDB, FastAPI, and Prometheus monitoring.
 
-The routes to CRUD are protected with JWT tokens.
+## Table of Contents
 
-The current db is using FIBO ontologies to describe projects to be financed.
-It will include requirements for providing non financial performance.
+- [Features](#features)
+- [Local Development](#local-development)
+- [Koyeb Deployment](#koyeb-deployment)
+- [Monitoring](#monitoring)
+- [Project Structure](#project-structure)
+- [Contributing](#contributing)
+- [License](#license)
+- [Contact](#contact)
+- [Citations](#citations)
 
+## Features
 
+- FastAPI-based REST API
+- DuckDB for data storage
+- Prometheus metrics collection
+- Project financing data model
+- Environment-based configuration
 
+## Local Development
 
+1. **Set up the environment**: Ensure you have Docker installed and running on your machine.
 
-## Quick Start
+2. **Build the Docker image**:
 
-1. Install dependencies:
+   ```bash
+   docker build -t your-image-name .
+   ```
 
-```bash
-pip install -r requirements.txt
-```
+3. **Run the Docker container**:
 
-2. Run the application:
+   ```bash
+   docker run -p 8000:8000 your-image-name
+   ```
 
-```bash
-uvicorn src.main:app --reload
-```
+4. **Access the application**: Open your browser and go to `http://localhost:8000`.
 
-3. Access the API documentation:
+## Koyeb Deployment
 
-- Open http://localhost:8000/docs in your browser
+Instructions to deploy the application on Koyeb.
 
-## Example Usage
+1. **Create a Koyeb account**: If you don't have one, sign up at [Koyeb](https://www.koyeb.com).
 
-1. Create a project:
+2. **Create a new service**:
+   - Go to the Koyeb dashboard.
+   - Click on "Create Service".
+   - Select "Docker" as the deployment method.
 
-```bash
-curl -X POST http://localhost:8000/ops/projects \
-  -H "Content-Type: application/json" \
-  -d '{
-    "project_name": "Green Energy Plant",
-    "total_amount": 1000000,
-    "maturity_years": 10,
-    "expected_tri": 12.5,
-    "dscr": 1.5,
-    "status": "PROPOSED"
-  }'
-```
+3. **Configure the service**:
+   - Enter your Docker image name (e.g., `yourusername/yourproject`).
+   - Set the port to `8000`.
 
-2. Create a portfolio:
+4. **Deploy the service**:
+   - Click "Deploy" to start the deployment process.
 
-```bash
-curl -X POST http://localhost:8000/ops/portfolios \
-  -H "Content-Type: application/json" \
-  -d '{
-    "portfolio_name": "Renewable Energy",
-    "risk_profile": "MODERATE",
-    "total_committed_amount": 5000000
-  }'
-```
+5. **Access the application**: Once deployed, Koyeb will provide a URL to access your application.
+
+## Monitoring
+
+Details on how to monitor the application using Prometheus.
 
 ## Project Structure
 
-- `src/database/`: Database models and manager
-- `src/api/`: API endpoints
-- `src/main.py`: Application entry point
+Overview of the project's directory structure and files.
+
+## Contributing
+
+Guidelines for contributing to the project.
+
+1. Fork the repository
+2. Create a new branch (`git checkout -b feature/your-feature`)
+3. Commit your changes (`git commit -m 'Add some feature'`)
+4. Push to the branch (`git push origin feature/your-feature`)
+5. Open a pull request
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## Contact
+
+Your Name - [jeanbapt](mailto:jeanbapt@dealexmachina.com)
+
+Project Link: [https://github.com/jeanbapt/duckdb-spawn](https://github.com/jeanbapt/duckdb-spawn)
+
+## Citations
+
+This project utilizes the following technologies:
+
+- **[FastAPI](https://fastapi.tiangolo.com/)**: A modern, fast (high-performance), web framework for building APIs with Python 3.6+ based on standard Python type hints.
+- **[DuckDB](https://duckdb.org/)**: An in-process SQL OLAP database management system.
+- **[Prometheus](https://prometheus.io/)**: An open-source systems monitoring and alerting toolkit.
+- **[Koyeb](https://www.koyeb.com/)**: A platform for deploying and running applications in the cloud.
+- **[Pulumi](https://www.pulumi.com/)**: A modern infrastructure as code platform that allows you to define cloud resources using programming languages.
