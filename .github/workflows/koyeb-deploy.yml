@@ -5,49 +5,29 @@ on:
     branches:
       - main
 
-env:
-  DOCKER_HUB_USERNAME: ${{ secrets.DOCKER_HUB_USERNAME }}
-  DOCKER_IMAGE_NAME: duckdb-spawn
-  KOYEB_APP_NAME: duckdb-spawn
-
 jobs:
-  build-and-deploy:
+  deploy:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v2
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
-
-      - name: Login to Docker Hub
-        uses: docker/login-action@v2
+      - name: Install and configure Koyeb CLI
+        uses: koyeb-community/koyeb-actions@v2
         with:
-          username: ${{ secrets.DOCKER_HUB_USERNAME }}
-          password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
-          logout: true
+          api_token: "${{ secrets.KOYEB_API_TOKEN }}"
 
-      - name: Build and push Docker image
-        uses: docker/build-push-action@v4
+      - name: Build and deploy to Koyeb
+        uses: koyeb/action-git-deploy@v1
         with:
-          context: .
-          platforms: linux/amd64,linux/arm64
-          push: true
-          tags: |
-            ${{ secrets.DOCKER_HUB_USERNAME }}/${{ env.DOCKER_IMAGE_NAME }}:latest
-            ${{ secrets.DOCKER_HUB_USERNAME }}/${{ env.DOCKER_IMAGE_NAME }}:${{ github.sha }}
-
-      - name: Install Koyeb CLI
-        run: |
-          curl -fsSL https://raw.githubusercontent.com/koyeb/koyeb-cli/master/install.sh | sh
-          echo "$HOME/.koyeb/bin" >> $GITHUB_PATH
-
-      - name: Deploy to Koyeb
-        # Create an app on Koyeb using the koyeb.yaml file located in the root directory
-        run: |
-          koyeb apps create duckdb-spawn --config ./koyeb.yaml --token ${{ secrets.KOYEB_API_TOKEN }} --debug
-          koyeb services create duckdb-spawn/api --config ./koyeb.yaml --token ${{ secrets.KOYEB_API_TOKEN }} --debug
+          app-name: duckdb-spawn
+          service-name: api
+          service-env: "PYTHONUNBUFFERED=1,LOG_LEVEL=info,ENVIRONMENT=staging"
+          service-ports: "8000:http"
+          service-routes: "/:8000"
+          service-instance-type: "nano"
+          service-regions: "fra"
+          service-checks: "8000:http:/monitoring/health"
+          git-branch: main
+          git-builder: docker
           
