@@ -54,5 +54,5 @@ jobs:
           service-instance-type: nano
           service-regions: fra
           service-checks: 8000:http:/monitoring/health
-          docker-private-registry-secret: DOCKER_HUB_ACCESS_KEY
+          docker-private-registry-secret: DOCKER_REPO_SECRET
           
