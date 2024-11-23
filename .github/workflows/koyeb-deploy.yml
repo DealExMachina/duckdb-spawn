@@ -22,11 +22,16 @@ jobs:
           password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
 
       - name: Build and push Docker image
+        id: docker_build
         uses: docker/build-push-action@v4
         with:
           context: .
           push: true
           tags: ${{ secrets.DOCKER_HUB_USERNAME }}/duckdb-spawn:${{ github.sha }}
+
+      - name: Verify Docker image
+        run: |
+          timeout 300 bash -c 'until docker pull ${{ secrets.DOCKER_HUB_USERNAME }}/duckdb-spawn:${{ github.sha }}; do sleep 5; done'
 
       - name: Deploy Koyeb CLI
         uses: koyeb-community/koyeb-actions@v2
@@ -38,7 +43,7 @@ jobs:
         with:
           app-name: "duckdb-spawn"
           service-name: "api"
-          docker: "${{ secrets.DOCKER_HUB_USERNAME }}/duckdb-spawn:${{ github.sha }}"
+          docker: "docker.io/${{ secrets.DOCKER_HUB_USERNAME }}/duckdb-spawn:${{ github.sha }}"
           service-env: "DATABASE_URL=/data/duckdb_spawn.db,PYTHONUNBUFFERED=1,LOG_LEVEL=info,ENVIRONMENT=staging"
           service-ports: "8000:http"
           service-routes: "/:8000"
