@@ -29,10 +29,21 @@ jobs:
           push: true
           tags: ${{ secrets.DOCKER_HUB_USERNAME }}/duckdb-spawn:${{ github.sha }}
 
+      - name: Debug - Verify image exists
+        run: |
+          echo "Checking image: ${{ secrets.DOCKER_HUB_USERNAME }}/duckdb-spawn:${{ github.sha }}"
+          docker pull ${{ secrets.DOCKER_HUB_USERNAME }}/duckdb-spawn:${{ github.sha }}
+          echo "Image details:"
+          docker inspect ${{ secrets.DOCKER_HUB_USERNAME }}/duckdb-spawn:${{ github.sha }}
+          echo "Docker Hub API check:"
+          curl -s -H "Authorization: Bearer ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}" \
+            "https://hub.docker.com/v2/repositories/${{ secrets.DOCKER_HUB_USERNAME }}/duckdb-spawn/tags/${{ github.sha }}/" || true
+
       - name: Configure Koyeb
         uses: koyeb-community/koyeb-actions@v2
         with:
           api_token: "${{ secrets.KOYEB_API_TOKEN }}"
+
       - name: Deploy on Koyeb
         uses: koyeb/action-git-deploy@v1
         with:
