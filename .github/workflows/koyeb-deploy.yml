@@ -56,4 +56,6 @@ jobs:
           service-routes: /:8000
           service-instance-type: nano
           service-regions: fra
+          service-checks: 8000:http:/monitoring/health
+          docker-private-registry-secret: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
           
