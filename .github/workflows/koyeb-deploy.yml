@@ -29,18 +29,20 @@ jobs:
           push: true
           tags: ${{ secrets.DOCKER_HUB_USERNAME }}/duckdb-spawn:${{ github.sha }}
 
-      - name: Deploy to Koyeb
+      - name: Configure Koyeb
+        uses: koyeb-community/koyeb-actions@v2
+        with:
+          api_token: "${{ secrets.KOYEB_API_TOKEN }}"
+      - name: Deploy on Koyeb
         uses: koyeb/action-git-deploy@v1
         with:
-          api-token: "${{ secrets.KOYEB_API_TOKEN }}"
-          app-name: "duckdb-spawn"
-          service-name: "api"
-          service-env: "DATABASE_URL=/data/duckdb_spawn.db PYTHONUNBUFFERED=1 LOG_LEVEL=info ENVIRONMENT=staging"
-          service-ports: "8000:http"
-          service-routes: "/:8000"
-          service-instance-type: "nano"
-          service-regions: "fra"
-          registry-username: "${{ secrets.DOCKER_HUB_USERNAME }}"
-          registry-password: "${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}"
-          docker-image: "${{ secrets.DOCKER_HUB_USERNAME }}/duckdb-spawn:latest"
+          app-name: duckdb-spawn
+          service-name: api
+          service-type: web
+          docker: ${{ secrets.DOCKER_HUB_USERNAME }}/duckdb-spawn:${{ github.sha }}
+          service-env: DATABASE_URL=/data/duckdb_spawn.db,PYTHONUNBUFFERED=1,LOG_LEVEL=info,ENVIRONMENT=staging
+          service-ports: 8000:http
+          service-routes: /:8000
+          service-instance-type: nano
+          service-regions: fra
           
