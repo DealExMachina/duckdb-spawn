@@ -1,4 +1,7 @@
 data-product/
+├── config/
+│   ├── __init__.py
+│   └── onto_server.py
 ├── infrastructure/
 │   ├── __init__.py
 │   └── pulumi/

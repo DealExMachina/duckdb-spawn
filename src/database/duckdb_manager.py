@@ -4,14 +4,13 @@ import logging
 from uuid import uuid4
 from datetime import datetime
 from .schema import SCHEMA_DEFINITIONS
+from .connection_manager import DuckDBConnectionManager
 
 logger = logging.getLogger('data_product')
 
 class DuckDBManager:
     def __init__(self, db_path: str = "data_product.db"):
-        self.db_path = db_path
-        logger.info(f"Initializing DuckDB connection to {db_path}")
-        self.conn = duckdb.connect(db_path)
+        self.conn_manager = DuckDBConnectionManager()
         self._initialize_schema()
         
     def _initialize_schema(self):
@@ -21,12 +20,13 @@ class DuckDBManager:
 
     def execute_query(self, query: str, params: tuple = None) -> List[Dict[str, Any]]:
         try:
-            result = self.conn.execute(query, params if params else ()).fetchall()
-            columns = self.conn.execute(query).description
-            return [
-                {columns[i][0]: value for i, value in enumerate(row)}
-                for row in result
-            ]
+            with self.conn_manager.get_connection() as conn:
+                result = conn.execute(query, params if params else ()).fetchall()
+                columns = conn.execute(query).description
+                return [
+                    {columns[i][0]: value for i, value in enumerate(row)}
+                    for row in result
+                ]
         except Exception as e:
             logger.error(f"Query execution error: {str(e)}", exc_info=True)
             raise

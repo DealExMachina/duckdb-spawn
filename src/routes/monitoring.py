@@ -2,10 +2,11 @@ from fastapi import APIRouter, HTTPException
 from prometheus_client import Counter, Gauge
 import psutil
 import datetime
-from src.utils.logging_config import setup_logging
+import logging
+from config.onto_server import check_onto_server_health
 
 router = APIRouter(prefix="/monitoring", tags=["Monitoring"])
-logger = setup_logging()
+logger = logging.getLogger('data_product')
 
 # Define Prometheus metrics
 http_requests_total = Counter(
@@ -23,21 +24,27 @@ disk_usage_gauge = Gauge('disk_usage_percent', 'Disk Usage Percentage')
 async def health_check():
     """Health check endpoint with enhanced status information"""
     try:
-        # Add basic system checks
+        # System checks
         system_healthy = all([
-            psutil.cpu_percent() < 95,  # CPU not maxed out
-            psutil.virtual_memory().percent < 95,  # Memory not maxed out
-            psutil.disk_usage('/').percent < 95  # Disk not full
+            psutil.cpu_percent() < 95,
+            psutil.virtual_memory().percent < 95,
+            psutil.disk_usage('/').percent < 95
         ])
         
+        # Check onto server health
+        onto_server_healthy = await check_onto_server_health()
+        
+        overall_status = "healthy" if (system_healthy and onto_server_healthy) else "degraded"
+        
         return {
-            "status": "healthy" if system_healthy else "degraded",
+            "status": overall_status,
             "service": "duckdb-spawn-api",
             "timestamp": datetime.datetime.utcnow().isoformat(),
             "checks": {
                 "cpu": "ok" if psutil.cpu_percent() < 95 else "warning",
                 "memory": "ok" if psutil.virtual_memory().percent < 95 else "warning",
-                "disk": "ok" if psutil.disk_usage('/').percent < 95 else "warning"
+                "disk": "ok" if psutil.disk_usage('/').percent < 95 else "warning",
+                "onto_server": "ok" if onto_server_healthy else "error"
             }
         }
     except Exception as e:
