@@ -1,11 +1,10 @@
 from fastapi import APIRouter, HTTPException
-from typing import Dict, Any, List
 from pydantic import BaseModel
 import uuid
 from datetime import datetime
 import logging
 from ..database.connection_manager import DuckDBConnectionManager
-from config.onto_server import get_project_schema_jsonld, ProjectSchema, ProjectStatus
+from config.onto_server import get_project_schema_jsonld, ProjectStatus
 
 router = APIRouter(prefix="/ops", tags=["Operations"])
 logger = logging.getLogger('data_product')

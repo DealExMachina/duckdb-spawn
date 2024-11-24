@@ -1,4 +1,4 @@
-import duckdb
+
 from typing import List, Dict, Any
 import logging
 from uuid import uuid4

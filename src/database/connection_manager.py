@@ -1,7 +1,6 @@
 import duckdb
 from contextlib import contextmanager
 import threading
-from typing import Optional
 import logging
 import os
 

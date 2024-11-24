@@ -4,7 +4,6 @@ from pydantic import BaseModel
 import httpx
 from enum import Enum
 import logging
-from functools import lru_cache
 from .mock_onto_responses import get_mock_response
 
 logger = logging.getLogger('data_product')

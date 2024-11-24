@@ -1,85 +1,166 @@
-# DuckDB-SPAWN Data Product
+# DuckDB Spawn API
 
-A data product API for project financing using DuckDB, FastAPI, and Prometheus monitoring.
+A FastAPI service that manages project data using DuckDB with dynamic schema support from an ontology server.
 
-## Table of Contents
+## Architecture
 
-- [Features](#features)
-- [Local Development](#local-development)
-- [Koyeb Deployment](#koyeb-deployment)
-- [Monitoring](#monitoring)
-- [Project Structure](#project-structure)
-- [Contributing](#contributing)
-- [License](#license)
-- [Contact](#contact)
-- [Citations](#citations)
+```mermaid
+graph TB
+    subgraph "Client Layer"
+        Client[API Clients]
+    end
 
-## Features
+    subgraph "API Layer"
+        FastAPI[FastAPI Service]
+        Cache[Schema Cache]
+        ConnMgr[Connection Manager]
+    end
 
-- FastAPI-based REST API
-- DuckDB for data storage
-- Prometheus metrics collection
-- Project financing data model
-- Environment-based configuration
+    subgraph "Data Layer"
+        DuckDB[(DuckDB)]
+    end
 
-## Local Development
+    subgraph "Schema Layer"
+        OntoServer[Ontology Server]
+        MockServer[Mock Server]
+        SchemaAdapter[Schema Adapter]
+    end
 
-1. **Set up the environment**: Ensure you have Docker installed and running on your machine.
+    Client --> FastAPI
+    FastAPI --> ConnMgr
+    ConnMgr --> DuckDB
+    FastAPI --> SchemaAdapter
+    SchemaAdapter --> |Primary| OntoServer
+    SchemaAdapter --> |Fallback| MockServer
+    SchemaAdapter --> |Cache| Cache
+    Cache --> FastAPI
+```
 
-2. **Build the Docker image**:
+## Overview
 
-   ```bash
-   docker build -t your-image-name .
-   ```
+DuckDB Spawn API provides a dynamic project management system where the database schema is controlled by an external ontology server. The system includes:
 
-3. **Run the Docker container**:
+- **Dynamic Schema Management**: Database tables are created and updated based on schemas from the ontology server
+- **Connection Management**: Thread-safe DuckDB connections with proper transaction handling
+- **Mock Support**: Built-in mock responses for development when the ontology server is unavailable
+- **Health Monitoring**: System metrics and health checks including ontology server status
 
-   ```bash
-   docker run -p 8000:8000 your-image-name
-   ```
+## Key Features
 
-4. **Access the application**: Open your browser and go to `http://localhost:8000`.
+- Async API endpoints for project management
+- Schema-driven database operations
+- Prometheus metrics integration
+- Structured JSON logging
+- Health monitoring endpoints
+- Mock server support for development
 
-## Koyeb Deployment
+## Configuration
 
-Instructions to deploy the application on Koyeb.
+Environment variables:
 
-This project is using [koyeb-git-action](https://github.com/koyeb/action-git-deploy) to deploy the application.
+```bash
+# Ontology Server Configuration
+ONTO_SERVER_URL=http://localhost:8001
+ONTO_SERVER_TIMEOUT=5
+USE_MOCK_ONTO_SERVER=true  # Use mock responses for development
 
-## Monitoring
+# Database Configuration
+DUCKDB_PATH=data_product.db
+```
 
-Details on how to monitor the application using Prometheus.
+## API Endpoints
+
+### Operations
+
+- `POST /ops/projects`: Create a new project
+- `GET /ops/projects`: List all projects
+- `GET /ops/projects/{project_id}`: Get project details
+- `POST /ops/initialize`: Initialize database with schema
+
+### Admin
+
+- `POST /admin/tables`: Create tables from schema
+- `GET /admin/tables`: List all tables
+- `PUT /admin/tables/{table_name}`: Update table schema
+- `DELETE /admin/tables/{table_name}`: Delete table
+- `POST /admin/logging/level`: Update logging level
+
+### Monitoring
+
+- `GET /monitoring/health`: System health status
+- `GET /monitoring/metrics/system`: System metrics
+
+## Development
+
+1. Clone the repository
+
+2. Create a virtual environment:
+
+```bash
+python -m venv .venv
+source .venv/bin/activate  # Unix
+.venv\Scripts\activate     # Windows
+```
+
+3. Install dependencies:
+
+```bash
+pip install -r requirements.txt
+```
+
+4. Run the application:
+
+```bash
+uvicorn src.main:app --reload
+```
+
+## Testing
+
+Run tests with pytest:
+
+```bash
+pytest
+```
 
 ## Project Structure
 
-Overview of the project's directory structure and files.
-
-## Contributing
-
-Guidelines for contributing to the project.
-
-1. Fork the repository
-2. Create a new branch (`git checkout -b feature/your-feature`)
-3. Commit your changes (`git commit -m 'Add some feature'`)
-4. Push to the branch (`git push origin feature/your-feature`)
-5. Open a pull request
+```text
+duckdb-spawn/
+├── config/
+│   ├── __init__.py
+│   ├── onto_server.py           # Schema server interface
+│   └── mock_onto_responses.py   # Mock responses
+├── src/
+│   ├── __init__.py
+│   ├── main.py
+│   ├── routes/
+│   │   ├── admin.py            # Admin endpoints
+│   │   ├── operations.py       # Project operations
+│   │   └── monitoring.py       # Health checks
+│   ├── database/
+│   │   ├── connection_manager.py
+│   │   └── schema.py
+│   └── utils/
+│       ├── logging_config.py
+│       └── metrics.py
+└── tests/
+    └── test_routes/
+```
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+MIT License
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Commit your changes
+4. Push to the branch
+5. Create a Pull Request
 
 ## Contact
 
-Your Name - [jeanbapt](mailto:jeanbapt@dealexmachina.com)
-
-Project Link: [https://github.com/jeanbapt/duckdb-spawn](https://github.com/jeanbapt/duckdb-spawn)
-
-## Citations
-
-This project utilizes the following technologies:
-
-- **[FastAPI](https://fastapi.tiangolo.com/)**: A modern, fast (high-performance), web framework for building APIs with Python 3.6+ based on standard Python type hints.
-- **[DuckDB](https://duckdb.org/)**: An in-process SQL OLAP database management system.
-- **[Prometheus](https://prometheus.io/)**: An open-source systems monitoring and alerting toolkit.
-- **[Koyeb](https://www.koyeb.com/)**: A platform for deploying and running applications in the cloud.
-- **[Pulumi](https://www.pulumi.com/)**: A modern infrastructure as code platform that allows you to define cloud resources using programming languages.
+- Author: Jean-Baptiste Dezard
+- Email: [jeanbapt@dealexmachina.com](mailto:jeanbapt@dealexmachina.com)
+- Project: [GitHub Repository](https://github.com/jeanbapt/duckdb-spawn)
