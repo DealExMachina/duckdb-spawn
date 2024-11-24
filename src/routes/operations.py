@@ -7,6 +7,7 @@ from datetime import datetime
 import logging
 
 router = APIRouter(prefix="/ops", tags=["Operations"])
+logger = logging.getLogger('data_product')
 
 class ProjectCreate(BaseModel):
     project_name: str

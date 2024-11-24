@@ -1,10 +1,11 @@
 from fastapi import APIRouter, HTTPException
-from typing import Dict, Any
+from typing import Dict, Literal
 from ..utils.metrics import table_creation_counter
 import logging
 import duckdb  # Import DuckDB
+from pydantic import BaseModel
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger('data_product')
 router = APIRouter(prefix="/admin", tags=["Admin"])
 
 @router.post("/tables")
@@ -66,4 +67,35 @@ async def list_tables():
         return {"tables": tables}
     except Exception as e:
         logger.error(f"Failed to retrieve list of tables: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+class LogLevelUpdate(BaseModel):
+    level: Literal['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL']
+
+@router.post("/logging/level")
+async def set_log_level(level_update: LogLevelUpdate):
+    """Update the application's logging level"""
+    try:
+        numeric_level = getattr(logging, level_update.level)
+        logger = logging.getLogger('data_product')
+        logger.setLevel(numeric_level)
+        
+        # Update all handlers to the new level
+        for handler in logger.handlers:
+            handler.setLevel(numeric_level)
+            
+        logger.info(f"Log level changed to {level_update.level}")
+        return {"message": f"Logging level set to {level_update.level}"}
+    except Exception as e:
+        logger.error(f"Failed to update log level: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/logging/level")
+async def get_log_level():
+    """Get the current logging level"""
+    try:
+        logger = logging.getLogger('data_product')
+        return {"current_level": logging.getLevelName(logger.getEffectiveLevel())}
+    except Exception as e:
+        logger.error(f"Failed to get log level: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e)) 

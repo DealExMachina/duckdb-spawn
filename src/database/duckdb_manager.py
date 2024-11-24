@@ -5,16 +5,19 @@ from uuid import uuid4
 from datetime import datetime
 from .schema import SCHEMA_DEFINITIONS
 
+logger = logging.getLogger('data_product')
+
 class DuckDBManager:
     def __init__(self, db_path: str = "data_product.db"):
         self.db_path = db_path
+        logger.info(f"Initializing DuckDB connection to {db_path}")
         self.conn = duckdb.connect(db_path)
         self._initialize_schema()
         
     def _initialize_schema(self):
         for table_name, schema_sql in SCHEMA_DEFINITIONS.items():
             self.execute_query(schema_sql)
-            logging.info(f"Initialized table: {table_name}")
+            logger.info(f"Initialized table: {table_name}")
 
     def execute_query(self, query: str, params: tuple = None) -> List[Dict[str, Any]]:
         try:
@@ -25,7 +28,7 @@ class DuckDBManager:
                 for row in result
             ]
         except Exception as e:
-            logging.error(f"Query execution error: {str(e)}")
+            logger.error(f"Query execution error: {str(e)}", exc_info=True)
             raise
 
     def create_project(self, project_data: Dict[str, Any]) -> str:

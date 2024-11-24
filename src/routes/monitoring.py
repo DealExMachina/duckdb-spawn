@@ -1,11 +1,11 @@
 from fastapi import APIRouter, HTTPException
 from prometheus_client import Counter, Gauge
 import psutil
-import logging
 import datetime
+from src.utils.logging_config import setup_logging
 
 router = APIRouter(prefix="/monitoring", tags=["Monitoring"])
-logger = logging.getLogger('data_product')
+logger = setup_logging()
 
 # Define Prometheus metrics
 http_requests_total = Counter(
