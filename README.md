@@ -36,6 +36,36 @@ graph TB
     Cache --> FastAPI
 ```
 
+## Deployment Architecture
+
+```mermaid
+graph TD
+    subgraph Local Environment
+        LocalDev[Local Development]
+        Docker[Docker Container]
+    end
+
+    subgraph Infrastructure
+        CI/CD[CI/CD Pipeline]
+        Monitoring[Monitoring Tools]
+    end
+
+    subgraph Staging Environment
+        KoyebStaging[Koyeb Staging]
+    end
+
+    subgraph Production Environment
+        KoyebProd[Koyeb Production]
+    end
+
+    LocalDev --> Docker
+    Docker --> CI/CD
+    CI/CD --> KoyebStaging
+    CI/CD --> KoyebProd
+    KoyebStaging --> Monitoring
+    KoyebProd --> Monitoring
+```
+
 ## Overview
 
 DuckDB Spawn API provides a dynamic project management system where the database schema is controlled by an external ontology server. The system includes:
@@ -130,21 +160,147 @@ duckdb-spawn/
 │   ├── __init__.py
 │   ├── onto_server.py           # Schema server interface
 │   └── mock_onto_responses.py   # Mock responses
+├── infrastructure/
+│   ├── pulumi/                  # Infrastructure as Code
+│   │   ├── __main__.py         # Main Pulumi program
+│   │   ├── Pulumi.yaml         # Pulumi project file
+│   │   └── Pulumi.dev.yaml     # Development stack configuration
+│   ├── docker/
+│   │   ├── Dockerfile          # Application container
+│   │   └── docker-compose.yml  # Local development setup
+│   └── monitoring/
+│       ├── prometheus/
+│       │   └── prometheus.yml  # Prometheus configuration
+│       └── grafana/
+│           └── dashboards/     # Grafana dashboard definitions
 ├── src/
 │   ├── __init__.py
 │   ├── main.py
 │   ├── routes/
-│   │   ├── admin.py            # Admin endpoints
-│   │   ├── operations.py       # Project operations
-│   │   └── monitoring.py       # Health checks
+│   │   ├── admin.py           # Admin endpoints
+│   │   ├── operations.py      # Project operations
+│   │   └── monitoring.py      # Health checks
 │   ├── database/
 │   │   ├── connection_manager.py
 │   │   └── schema.py
 │   └── utils/
 │       ├── logging_config.py
 │       └── metrics.py
-└── tests/
-    └── test_routes/
+├── tests/
+│   └── test_routes/
+├── .github/
+│   └── workflows/
+│       ├── ci.yml             # CI pipeline
+│       └── koyeb-deploy.yml   # Deployment pipeline
+└── deployment/
+    ├── staging/              # Staging environment configs
+    └── production/           # Production environment configs
+```
+
+## Infrastructure
+
+### Local Development
+
+The project includes a Docker Compose setup for local development:
+
+```bash
+# Start local development environment
+docker-compose -f infrastructure/docker/docker-compose.yml up -d
+
+# View logs
+docker-compose -f infrastructure/docker/docker-compose.yml logs -f
+```
+
+### Infrastructure as Code
+
+The project uses Pulumi for infrastructure management:
+
+```bash
+# Initialize Pulumi stack
+cd infrastructure/pulumi
+pulumi stack init dev
+
+# Deploy infrastructure
+pulumi up
+
+# Destroy infrastructure
+pulumi destroy
+```
+
+### Monitoring Setup
+
+The monitoring stack includes:
+
+- Prometheus for metrics collection
+- Grafana for visualization
+- Custom dashboards for DuckDB metrics
+
+To deploy the monitoring stack:
+
+```bash
+cd infrastructure/monitoring
+docker-compose up -d
+```
+
+### CI/CD Pipeline
+
+The project uses GitHub Actions for CI/CD:
+
+1. **Continuous Integration**:
+   - Automated testing
+   - Code quality checks
+   - Container image building
+
+2. **Continuous Deployment**:
+   - Automated deployment to Koyeb
+   - Environment-specific configurations
+   - Health check verification
+
+### Environment Management
+
+The project supports multiple environments:
+
+- **Development**: Local development environment
+- **Staging**: Pre-production testing environment
+- **Production**: Production environment
+
+Environment-specific configurations are managed through:
+- Environment variables
+- Pulumi stacks
+- Koyeb configurations
+
+## Deployment
+
+### Koyeb Deployment
+
+1. Set up Koyeb credentials:
+
+```bash
+export KOYEB_TOKEN=your_token
+```
+
+2. Deploy using GitHub Actions:
+   - Push to `main` branch for staging deployment
+   - Create a release for production deployment
+
+### Infrastructure Updates
+
+To update the infrastructure:
+
+1. Modify Pulumi configurations:
+
+```bash
+cd infrastructure/pulumi
+# Edit __main__.py or Pulumi.dev.yaml
+pulumi up
+```
+
+2. Update monitoring configurations:
+
+```bash
+cd infrastructure/monitoring
+# Edit prometheus.yml or grafana dashboards
+docker-compose up -d --force-recreate
 ```
 
 ## License
