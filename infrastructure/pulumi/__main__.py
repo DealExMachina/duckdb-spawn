@@ -163,9 +163,8 @@ api_container = docker.Container("duckdb-spawn-api",
     opts=pulumi.ResourceOptions(
         provider=provider,
         depends_on=[network, db_volume],
-        parent=network,
-        delete_before_replace=True,  # Delete old container before creating new one
-        replace_on_changes=["image"]  # Replace container when image changes
+        replace_on_changes=["image"],  # Replace container when image changes
+        retain_on_delete=False  # Don't try to retain the container on delete
     )
 )
 
@@ -206,9 +205,8 @@ prometheus_container = docker.Container("prometheus",
     opts=pulumi.ResourceOptions(
         provider=provider,
         depends_on=[network, prometheus_volume, api_container],
-        parent=network,
-        delete_before_replace=True,  # Delete old container before creating new one
-        replace_on_changes=["image"]  # Replace container when image changes
+        replace_on_changes=["image"],  # Replace container when image changes
+        retain_on_delete=False  # Don't try to retain the container on delete
     )
 )
 
