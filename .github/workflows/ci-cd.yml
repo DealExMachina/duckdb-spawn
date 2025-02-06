@@ -110,15 +110,20 @@ jobs:
 
       - name: Deploy with Pulumi
         id: deploy
+        env:
+          PULUMI_ACCESS_TOKEN: ${{ secrets.PULUMI_ACCESS_TOKEN }}
+          DOCKER_USERNAME: ${{ secrets.DOCKER_HUB_USERNAME }}
+          DOCKER_PASSWORD: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
         run: |
           cd infrastructure/pulumi
           pulumi login
-          # Try to select the stack first, create it if it doesn't exist
           pulumi stack select ${{ env.PULUMI_STACK_NAME }} || pulumi stack init ${{ env.PULUMI_STACK_NAME }}
           pulumi config set duckdb-spawn:environment staging
           pulumi config set duckdb-spawn:imageTag ${{ env.STAGING_TAG }}
           pulumi config set duckdb-spawn:apiPort 8000
           pulumi config set duckdb-spawn:prometheusPort 9090
           pulumi config set duckdb-spawn:logLevel info
+          pulumi config set docker:username $DOCKER_USERNAME
+          pulumi config set docker:password --secret $DOCKER_PASSWORD
           pulumi up --yes
           echo "api_endpoint=$(pulumi stack output api_endpoint)" >> $GITHUB_OUTPUT 
