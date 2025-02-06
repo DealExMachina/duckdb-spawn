@@ -81,12 +81,19 @@ provider = docker.Provider("docker",
     registry_auth=[{
         "username": registry_username,
         "password": registry_password,
-        "address": "index.docker.io/v1/"
-    }]
+        "address": "docker.io"  # Use simple registry address
+    }],
+    # Add explicit registry configuration
+    registries={
+        "docker.io": {
+            "username": registry_username,
+            "password": registry_password,
+        }
+    }
 )
 
 # Docker image configuration
-image_name = f"jeanbapt/duckdb-spawn:{image_tag}"  # Use standard Docker Hub image name format
+image_name = f"docker.io/jeanbapt/duckdb-spawn:{image_tag}"  # Use fully qualified image name
 
 # Create network
 network = docker.Network("duckdb-spawn-network",
