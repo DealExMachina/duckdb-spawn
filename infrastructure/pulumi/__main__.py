@@ -82,8 +82,7 @@ api_container = docker.Container("duckdb-spawn-api",
         start_period="20s"
     ),
     restart="unless-stopped",
-    memory=536870912,  # 512MB
-    memory_reservation=268435456,  # 256MB soft limit
+    memory="512m",  # 512MB
     cpu_shares=100,
     opts=pulumi.ResourceOptions(depends_on=[network, db_volume])
 )
@@ -119,8 +118,7 @@ prometheus_container = docker.Container("prometheus",
         start_period="20s"
     ),
     restart="unless-stopped",
-    memory=268435456,  # 256MB
-    memory_reservation=134217728,  # 128MB soft limit
+    memory="256m",  # 256MB
     cpu_shares=50,
     opts=pulumi.ResourceOptions(depends_on=[network, prometheus_volume, api_container])
 )
