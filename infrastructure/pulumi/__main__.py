@@ -75,7 +75,7 @@ api_container = docker.Container("duckdb-spawn-api",
         "DATABASE_URL=/app/data/duckdb_spawn.db"  # Match Koyeb configuration
     ],
     healthcheck=docker.ContainerHealthcheckArgs(
-        test=["CMD", "curl", "-f", "http://localhost:8000/health"],
+        tests=["CMD", "curl", "-f", "http://localhost:8000/health"],
         interval="30s",
         timeout="10s",
         retries=3,
@@ -112,7 +112,7 @@ prometheus_container = docker.Container("prometheus",
         aliases=["prometheus"]
     )],
     healthcheck=docker.ContainerHealthcheckArgs(
-        test=["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9090/-/healthy"],
+        tests=["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9090/-/healthy"],
         interval="30s",
         timeout="10s",
         retries=3,
