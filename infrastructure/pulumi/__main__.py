@@ -40,19 +40,6 @@ provider = docker.Provider("docker",
 docker_username = os.getenv("DOCKER_HUB_USERNAME", "jeanbapt")
 image_name = f"{docker_username}/duckdb-spawn:{image_tag}"
 
-# Create Docker image with registry auth
-duckdb_image = docker.RemoteImage("duckdb-spawn",
-    name=image_name,
-    keep_locally=True,
-    pull_triggers=[image_tag],  # Trigger pull on tag change
-    registry_auth=docker.RemoteImageRegistryAuthArgs(
-        username=registry_username,
-        password=registry_password,
-        server_address="https://index.docker.io/v1/"
-    ),
-    opts=pulumi.ResourceOptions(provider=provider)
-)
-
 # Create network
 network = docker.Network("duckdb-spawn-network",
     name="duckdb-spawn-network",
@@ -85,7 +72,7 @@ prometheus_volume = docker.Volume("prometheus-data",
 # API Container setup
 api_container = docker.Container("duckdb-spawn-api",
     name="duckdb-spawn-api",
-    image=duckdb_image.name,
+    image=image_name,
     ports=[docker.ContainerPortArgs(
         internal=8000,
         external=api_port
@@ -114,7 +101,7 @@ api_container = docker.Container("duckdb-spawn-api",
     restart="unless-stopped",
     memory=536870912,  # 512MB in bytes
     cpu_shares=100,
-    opts=pulumi.ResourceOptions(depends_on=[network, db_volume, duckdb_image], provider=provider)
+    opts=pulumi.ResourceOptions(depends_on=[network, db_volume], provider=provider)
 )
 
 # Prometheus Container
