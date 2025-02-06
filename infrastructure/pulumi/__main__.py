@@ -29,15 +29,16 @@ registry_password = registry_config.require("password")
 
 # Docker provider configuration
 provider = docker.Provider("docker",
+    host="unix:///var/run/docker.sock",
     registry_auth=[{
         "username": registry_username,
         "password": registry_password,
-        "address": "https://index.docker.io/v1/"
+        "address": "docker.io"
     }]
 )
 
 # Docker image configuration
-docker_username = os.getenv("DOCKER_HUB_USERNAME", "jeanbapt")
+docker_username = registry_username  # Use the same username from registry config
 image_name = f"{docker_username}/duckdb-spawn:{image_tag}"
 
 # Create network
