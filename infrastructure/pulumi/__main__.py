@@ -162,11 +162,7 @@ api_container = docker.Container("duckdb-spawn-api",
     opts=pulumi.ResourceOptions(
         provider=provider,
         depends_on=[network, db_volume],
-        parent=network,
-        custom_timeouts=docker.CustomTimeouts(
-            create="5m",  # Give more time for container creation
-            delete="5m"
-        )
+        parent=network
     )
 )
 
