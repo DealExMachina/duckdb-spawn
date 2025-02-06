@@ -149,7 +149,11 @@ api_container = docker.Container("duckdb-spawn-api",
     restart="unless-stopped",
     memory=536870912,  # 512MB in bytes
     cpu_shares=100,
-    opts=pulumi.ResourceOptions(depends_on=[network, db_volume], provider=provider)
+    opts=pulumi.ResourceOptions(
+        provider=provider,
+        depends_on=[network, db_volume],
+        parent=network  # Make the network the parent resource
+    )
 )
 
 # Prometheus Container
