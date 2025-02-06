@@ -1,7 +1,13 @@
 """A Docker deployment for the DUCKDB-SPAWN data product.
 
 This module defines the infrastructure for both the API and Prometheus monitoring
-using Docker containers with persistent volumes and networking."""
+using Docker containers with persistent volumes and networking.
+
+The deployment includes:
+- API container with DuckDB backend
+- Prometheus monitoring container
+- Persistent volumes for data storage
+- Docker network for container communication"""
 
 import pulumi
 from pulumi import Config
