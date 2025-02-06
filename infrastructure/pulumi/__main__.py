@@ -38,8 +38,7 @@ provider = docker.Provider("docker",
 )
 
 # Docker image configuration
-docker_username = registry_username  # Use the same username from registry config
-image_name = f"{docker_username}/duckdb-spawn:{image_tag}"
+image_name = f"jeanbapt/duckdb-spawn:{image_tag}"
 
 # Create network
 network = docker.Network("duckdb-spawn-network",
