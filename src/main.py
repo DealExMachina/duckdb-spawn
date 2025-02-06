@@ -1,4 +1,8 @@
+"""FastAPI application main module."""
+
 from contextlib import asynccontextmanager
+from datetime import datetime
+
 from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
@@ -6,10 +10,10 @@ from prometheus_fastapi_instrumentator import Instrumentator
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.util import get_remote_address
-from .utils.logging_config import setup_logging
-from .routes import admin, operations, monitoring
+
 from .database.connection_manager import DuckDBConnectionManager
-import datetime
+from .routes import admin, monitoring, operations
+from .utils.logging_config import setup_logging
 
 # Setup logging
 logger = setup_logging()
@@ -41,7 +45,7 @@ app = FastAPI(
     title="DuckDB Data Product API",
     description="API for managing project financing data",
     version="1.0.0",
-    lifespan=lifespan
+    lifespan=lifespan,
 )
 
 # Add rate limiter to app state
@@ -67,11 +71,11 @@ app.add_middleware(
         "Content-Type",
         "Accept",
         "Origin",
-        "X-Requested-With"
+        "X-Requested-With",
     ],
     expose_headers=[
         "Content-Length",
-        "Content-Range"
+        "Content-Range",
     ],
     max_age=3600,  # Cache preflight requests for 1 hour
 )
@@ -84,8 +88,8 @@ app.add_middleware(
         "*.dealexmachina.com",
         "localhost",
         "localhost:8000",
-        "test"  # Allow test host for testing
-    ]
+        "test",  # Allow test host for testing
+    ],
 )
 
 # Register routes
@@ -101,31 +105,31 @@ instrumentator.instrument(app)
 @app.get("/")
 @limiter.limit("5/minute")
 async def root(request: Request):
-    """Root endpoint"""
+    """Root endpoint."""
     logger.info("Root endpoint accessed")
     return {
         "message": "Welcome to DuckDB Data Product API",
         "docs_url": "/docs",
-        "openapi_url": "/openapi.json"
+        "openapi_url": "/openapi.json",
     }
 
 
 @app.get("/health")
 async def health_check():
-    """Health check endpoint"""
+    """Health check endpoint."""
     try:
         # Test database connection
         with db_manager.get_connection() as conn:
             conn.execute("SELECT 1").fetchone()
-        
+
         return {
             "status": "healthy",
             "database": "connected",
-            "timestamp": datetime.datetime.utcnow().isoformat()
+            "timestamp": datetime.utcnow().isoformat(),
         }
     except Exception as e:
         logger.error(f"Health check failed: {str(e)}")
         return Response(
             content={"status": "unhealthy", "error": str(e)},
-            status_code=503
-        ) 
+            status_code=503,
+        )

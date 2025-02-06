@@ -1,7 +1,8 @@
+"""Database schema definitions."""
+
 from enum import Enum
-from datetime import date
-from typing import Dict, Any
-from pydantic import BaseModel, Field
+
+from pydantic import BaseModel
 
 # Core schema definitions
 SCHEMA_DEFINITIONS = {
@@ -20,7 +21,6 @@ SCHEMA_DEFINITIONS = {
             currency_code CHAR(3) NOT NULL DEFAULT 'USD'
         )
     """,
-    
     "portfolios": """
         CREATE TABLE IF NOT EXISTS portfolios (
             portfolio_id UUID PRIMARY KEY,
@@ -32,7 +32,6 @@ SCHEMA_DEFINITIONS = {
             last_updated TIMESTAMP NOT NULL
         )
     """,
-    
     "portfolio_projects": """
         CREATE TABLE IF NOT EXISTS portfolio_projects (
             portfolio_id UUID REFERENCES portfolios(portfolio_id),
@@ -41,16 +40,21 @@ SCHEMA_DEFINITIONS = {
             entry_date DATE NOT NULL,
             PRIMARY KEY (portfolio_id, project_id)
         )
-    """
+    """,
 }
 
-# Simplified Pydantic models
+
 class ProjectStatus(str, Enum):
+    """Project status enumeration."""
+
     PROPOSED = "PROPOSED"
     ACTIVE = "ACTIVE"
     COMPLETED = "COMPLETED"
 
+
 class Project(BaseModel):
+    """Project model."""
+
     project_name: str
     description: str | None = None
     total_amount: float
@@ -60,12 +64,18 @@ class Project(BaseModel):
     status: ProjectStatus
     currency_code: str = "USD"
 
+
 class RiskProfile(str, Enum):
+    """Risk profile enumeration."""
+
     CONSERVATIVE = "CONSERVATIVE"
     MODERATE = "MODERATE"
     AGGRESSIVE = "AGGRESSIVE"
 
+
 class Portfolio(BaseModel):
+    """Portfolio model."""
+
     portfolio_name: str
     description: str | None = None
     risk_profile: RiskProfile

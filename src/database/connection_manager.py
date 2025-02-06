@@ -1,27 +1,39 @@
-import duckdb
-from contextlib import contextmanager
-import threading
+"""Database connection management module."""
+
 import logging
 import os
-from typing import Generator, Optional
+from contextlib import contextmanager
 from threading import Lock
+from typing import Generator, Optional
 
-logger = logging.getLogger('data_product')
+import duckdb
+
+logger = logging.getLogger("data_product")
+
 
 class DuckDBConnectionPool:
+    """Pool of DuckDB connections."""
+
     def __init__(self, db_path: str = "data/data_product.db", max_connections: int = 5):
+        """Initialize the connection pool.
+
+        Args:
+            db_path: Path to the DuckDB database file
+            max_connections: Maximum number of connections to keep in the pool
+        """
         self.db_path = db_path
         self.max_connections = max_connections
         self.connections: list[duckdb.DuckDBPyConnection] = []
         self.lock = Lock()
-        
+
         # Ensure data directory exists
         os.makedirs(os.path.dirname(db_path), exist_ok=True)
-        
+
     @contextmanager
     def get_connection(self) -> Generator[duckdb.DuckDBPyConnection, None, None]:
+        """Get a connection from the pool."""
         connection: Optional[duckdb.DuckDBPyConnection] = None
-        
+
         with self.lock:
             if self.connections:
                 connection = self.connections.pop()
@@ -32,10 +44,10 @@ class DuckDBConnectionPool:
                 except Exception as e:
                     logger.error(f"Failed to create database connection: {str(e)}")
                     raise
-        
+
         if not connection:
             raise RuntimeError("Failed to get database connection")
-            
+
         try:
             yield connection
         except Exception as e:
@@ -52,11 +64,15 @@ class DuckDBConnectionPool:
                 except Exception as e:
                     logger.error(f"Error while returning connection to pool: {str(e)}")
 
+
 class DuckDBConnectionManager:
+    """Singleton manager for DuckDB connections."""
+
     _instance = None
     _pool = None
 
     def __new__(cls):
+        """Create or return the singleton instance."""
         if cls._instance is None:
             cls._instance = super(DuckDBConnectionManager, cls).__new__(cls)
             cls._pool = DuckDBConnectionPool()

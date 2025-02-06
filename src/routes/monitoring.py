@@ -1,9 +1,15 @@
 """Monitoring routes for the application."""
+
 from typing import Dict
 
-from fastapi import APIRouter, Response
-from prometheus_client import Counter, Gauge, generate_latest, CONTENT_TYPE_LATEST
 import psutil
+from fastapi import APIRouter, Response
+from prometheus_client import (
+    CONTENT_TYPE_LATEST,
+    Counter,
+    Gauge,
+    generate_latest,
+)
 
 router = APIRouter(prefix="/monitoring", tags=["monitoring"])
 
@@ -11,13 +17,13 @@ router = APIRouter(prefix="/monitoring", tags=["monitoring"])
 REQUEST_COUNT = Counter(
     "http_requests_total",
     "Total number of HTTP requests",
-    ["method", "endpoint", "status"]
+    ["method", "endpoint", "status"],
 )
 
 RESPONSE_TIME = Gauge(
     "http_response_time_seconds",
     "HTTP response time in seconds",
-    ["method", "endpoint"]
+    ["method", "endpoint"],
 )
 
 CPU_USAGE = Gauge("system_cpu_usage", "Current CPU usage percentage")
@@ -34,10 +40,7 @@ async def health_check() -> Dict:
 @router.get("/metrics")
 async def metrics():
     """Prometheus metrics endpoint."""
-    return Response(
-        content=generate_latest(),
-        media_type=CONTENT_TYPE_LATEST
-    )
+    return Response(content=generate_latest(), media_type=CONTENT_TYPE_LATEST)
 
 
 @router.get("/metrics/system")
@@ -54,5 +57,5 @@ async def system_metrics() -> Dict:
     return {
         "cpu": cpu,
         "memory": memory,
-        "disk": disk
-    } 
+        "disk": disk,
+    }
