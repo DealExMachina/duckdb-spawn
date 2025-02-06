@@ -1,3 +1,4 @@
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
@@ -16,11 +17,31 @@ logger = setup_logging()
 # Initialize rate limiter
 limiter = Limiter(key_func=get_remote_address)
 
+# Initialize database connection manager
+db_manager = DuckDBConnectionManager()
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Lifespan events for FastAPI application."""
+    # Startup
+    await db_manager.initialize_database()
+    logger.info("Database initialized")
+    yield
+    # Shutdown
+    try:
+        db_manager.close_all()
+        logger.info("Gracefully closed all database connections")
+    except Exception as e:
+        logger.error(f"Error during shutdown: {str(e)}")
+
+
 # Initialize FastAPI app
 app = FastAPI(
     title="DuckDB Data Product API",
     description="API for managing project financing data",
-    version="1.0.0"
+    version="1.0.0",
+    lifespan=lifespan
 )
 
 # Add rate limiter to app state
@@ -62,17 +83,20 @@ app.add_middleware(
         "dealexmachina.com",
         "*.dealexmachina.com",
         "localhost",
-        "localhost:8000"
+        "localhost:8000",
+        "test"  # Allow test host for testing
     ]
 )
 
-# Setup Prometheus instrumentation
-Instrumentator().instrument(app).expose(app)
-
-# Include routers
+# Register routes
 app.include_router(admin.router)
 app.include_router(operations.router)
 app.include_router(monitoring.router)
+
+# Initialize Prometheus instrumentation
+instrumentator = Instrumentator()
+instrumentator.instrument(app)
+
 
 @app.get("/")
 @limiter.limit("5/minute")
@@ -85,12 +109,12 @@ async def root(request: Request):
         "openapi_url": "/openapi.json"
     }
 
+
 @app.get("/health")
 async def health_check():
     """Health check endpoint"""
     try:
         # Test database connection
-        db_manager = DuckDBConnectionManager()
         with db_manager.get_connection() as conn:
             conn.execute("SELECT 1").fetchone()
         
@@ -104,14 +128,4 @@ async def health_check():
         return Response(
             content={"status": "unhealthy", "error": str(e)},
             status_code=503
-        )
-
-@app.on_event("shutdown")
-async def shutdown_event():
-    """Cleanup on shutdown"""
-    try:
-        db_manager = DuckDBConnectionManager()
-        db_manager.close_all()
-        logger.info("Gracefully closed all database connections")
-    except Exception as e:
-        logger.error(f"Error during shutdown: {str(e)}") 
+        ) 

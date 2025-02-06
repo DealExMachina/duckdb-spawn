@@ -12,8 +12,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy the application source code only (excluding infrastructure)
+# Copy the application source code and config
 COPY src/ src/
+COPY config/ config/
 
 # Create directories for data and logs with proper permissions
 RUN mkdir -p /data /app/logs && chmod 777 /data /app/logs
@@ -28,7 +29,7 @@ EXPOSE 8000
 # Set environment variables
 ENV PYTHONPATH=/app \
     PYTHONUNBUFFERED=1 \
-    DATABASE_URL=/data/duckdb_spawn.db
+    DATABASE_URL=/app/data/duckdb_spawn.db
 
 # Run the application
 CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000", "--log-level", "info"]

@@ -9,6 +9,7 @@ on:
 env:
   PYTHON_VERSION: '3.10'
   PULUMI_VERSION: '3.x'
+  DOCKER_IMAGE: ${{ secrets.DOCKER_HUB_USERNAME }}/duckdb-spawn
 
 jobs:
   test:
@@ -60,11 +61,38 @@ jobs:
           black --check src/
           isort --check-only src/
 
-  deploy-staging:
+  build-and-push-staging:
     needs: [test, lint]
     if: github.ref == 'refs/heads/dev'
     runs-on: ubuntu-latest
-    environment: staging
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKER_HUB_USERNAME }}
+          password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          push: true
+          tags: ${{ env.DOCKER_IMAGE }}:staging-${{ github.sha }}
+          cache-from: type=registry,ref=${{ env.DOCKER_IMAGE }}:staging
+          cache-to: type=inline
+
+  deploy-staging:
+    needs: [build-and-push-staging]
+    if: github.ref == 'refs/heads/dev'
+    runs-on: ubuntu-latest
+    environment:
+      name: staging
+      url: ${{ steps.deploy.outputs.api_endpoint }}
     steps:
       - uses: actions/checkout@v3
 
@@ -83,41 +111,13 @@ jobs:
           cd infrastructure/pulumi
           pulumi stack select staging
           pulumi config set duckdb-spawn:environment staging
+          pulumi config set duckdb-spawn:imageTag staging-${{ github.sha }}
 
       - name: Deploy to staging
+        id: deploy
         run: |
           cd infrastructure/pulumi
           pulumi up --yes
-        env:
-          PULUMI_ACCESS_TOKEN: ${{ secrets.PULUMI_ACCESS_TOKEN }}
-
-  deploy-production:
-    needs: [test, lint]
-    if: github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
-    environment: production
-    steps:
-      - uses: actions/checkout@v3
-
-      - name: Setup Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-
-      - name: Setup Pulumi
-        uses: pulumi/setup-pulumi@v2
-        with:
-          pulumi-version: ${{ env.PULUMI_VERSION }}
-
-      - name: Configure Pulumi
-        run: |
-          cd infrastructure/pulumi
-          pulumi stack select production
-          pulumi config set duckdb-spawn:environment production
-
-      - name: Deploy to production
-        run: |
-          cd infrastructure/pulumi
-          pulumi up --yes
+          echo "api_endpoint=$(pulumi stack output api_endpoint)" >> $GITHUB_OUTPUT
         env:
           PULUMI_ACCESS_TOKEN: ${{ secrets.PULUMI_ACCESS_TOKEN }} 

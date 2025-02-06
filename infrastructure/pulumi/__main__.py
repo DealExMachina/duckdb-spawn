@@ -11,6 +11,11 @@ api_port = config.require_int("apiPort")
 prometheus_port = config.require_int("prometheusPort")
 environment = config.require("environment")
 log_level = config.require("logLevel")
+image_tag = config.get("imageTag", "latest")
+
+# Docker image configuration
+docker_username = os.getenv("DOCKER_HUB_USERNAME", "jeanbapt")
+image_name = f"{docker_username}/duckdb-spawn:{image_tag}"
 
 # Create network
 network = docker.Network("duckdb-spawn-network",
@@ -38,25 +43,10 @@ prometheus_volume = docker.Volume("prometheus-data",
     driver="local"
 )
 
-# Build the Docker image
-image_name = f"{config.get('registry', 'localhost')}/duckdb-spawn:{environment}"
-duckdb_spawn_image = docker.Image(
-    "duckdb-spawn-image",
-    build={
-        "context": "../..",
-        "dockerfile": "../../Dockerfile",
-        "args": {
-            "ENVIRONMENT": environment
-        }
-    },
-    image_name=image_name,
-    skip_push=True
-)
-
 # API Container setup
 api_container = docker.Container("duckdb-spawn-api",
     name="duckdb-spawn-api",
-    image=duckdb_spawn_image.base_image_name,
+    image=image_name,
     ports=[docker.ContainerPortArgs(
         internal=8000,
         external=api_port
@@ -72,7 +62,8 @@ api_container = docker.Container("duckdb-spawn-api",
     envs=[
         f"LOG_LEVEL={log_level}",
         f"ENVIRONMENT={environment}",
-        "PYTHONUNBUFFERED=1"
+        "PYTHONUNBUFFERED=1",
+        "DATABASE_URL=/app/data/duckdb_spawn.db"  # Match Koyeb configuration
     ],
     healthcheck=docker.ContainerHealthcheckArgs(
         test=["CMD", "curl", "-f", "http://localhost:8000/health"],
@@ -129,6 +120,7 @@ prometheus_container = docker.Container("prometheus",
 pulumi.export("api_endpoint", f"http://localhost:{api_port}")
 pulumi.export("prometheus_endpoint", f"http://localhost:{prometheus_port}")
 pulumi.export("environment", environment)
+pulumi.export("image_tag", image_tag)
 pulumi.export("volumes", {
     "db_data": db_volume.name,
     "prometheus_data": prometheus_volume.name
