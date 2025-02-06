@@ -12,6 +12,7 @@ env:
   DOCKER_IMAGE: ${{ secrets.DOCKER_HUB_USERNAME }}/duckdb-spawn
   PULUMI_ORG: ${{ secrets.PULUMI_ORG }}
   STAGING_TAG: staging-${{ github.sha }}
+  PULUMI_STACK_NAME: ${{ secrets.PULUMI_ORG }}/duckdb-spawn/staging
 
 jobs:
   test:
@@ -112,7 +113,8 @@ jobs:
         run: |
           cd infrastructure/pulumi
           pulumi login
-          pulumi stack init staging --org ${{ env.PULUMI_ORG }} || pulumi stack select staging --org ${{ env.PULUMI_ORG }}
+          # Try to select the stack first, create it if it doesn't exist
+          pulumi stack select ${{ env.PULUMI_STACK_NAME }} || pulumi stack init ${{ env.PULUMI_STACK_NAME }}
           pulumi config set duckdb-spawn:environment staging
           pulumi config set duckdb-spawn:imageTag ${{ env.STAGING_TAG }}
           pulumi config set duckdb-spawn:apiPort 8000
