@@ -15,7 +15,27 @@ log_level = config.require("logLevel")
 # Create network
 network = docker.Network("duckdb-spawn-network",
     name="duckdb-spawn-network",
-    driver="bridge"
+    driver="bridge",
+    options={
+        "com.docker.network.bridge.name": "duckdb-spawn",
+        "com.docker.network.bridge.enable_icc": "true"
+    }
+)
+
+# Create persistent volumes
+db_volume = docker.Volume("duckdb-data",
+    name="duckdb-data",
+    driver="local",
+    driver_opts={
+        "type": "none",
+        "device": os.path.join(os.path.dirname(__file__), "../../data"),
+        "o": "bind"
+    }
+)
+
+prometheus_volume = docker.Volume("prometheus-data",
+    name="prometheus-data",
+    driver="local"
 )
 
 # Build the Docker image
@@ -24,9 +44,12 @@ duckdb_spawn_image = docker.Image(
     "duckdb-spawn-image",
     build={
         "context": "../..",
-        "dockerfile": "../../Dockerfile"
+        "dockerfile": "../../Dockerfile",
+        "args": {
+            "ENVIRONMENT": environment
+        }
     },
-    image_name="duckdb-spawn:latest",
+    image_name=image_name,
     skip_push=True
 )
 
@@ -42,14 +65,27 @@ api_container = docker.Container("duckdb-spawn-api",
         name=network.name,
         aliases=["api"]
     )],
+    volumes=[docker.ContainerVolumeArgs(
+        volume_name=db_volume.name,
+        container_path="/app/data"
+    )],
     envs=[
         f"LOG_LEVEL={log_level}",
         f"ENVIRONMENT={environment}",
         "PYTHONUNBUFFERED=1"
     ],
-    memory=536870912,
+    healthcheck=docker.ContainerHealthcheckArgs(
+        test=["CMD", "curl", "-f", "http://localhost:8000/health"],
+        interval="30s",
+        timeout="10s",
+        retries=3,
+        start_period="20s"
+    ),
+    restart="unless-stopped",
+    memory=536870912,  # 512MB
+    memory_reservation=268435456,  # 256MB soft limit
     cpu_shares=100,
-    opts=pulumi.ResourceOptions(depends_on=[network])
+    opts=pulumi.ResourceOptions(depends_on=[network, db_volume])
 )
 
 # Prometheus Container
@@ -60,19 +96,40 @@ prometheus_container = docker.Container("prometheus",
         internal=9090,
         external=prometheus_port
     )],
-    volumes=[docker.ContainerVolumeArgs(
-        host_path=os.path.join(os.path.dirname(__file__), "config/prometheus.yml"),
-        container_path="/etc/prometheus/prometheus.yml",
-        read_only=True
-    )],
+    volumes=[
+        docker.ContainerVolumeArgs(
+            host_path=os.path.join(os.path.dirname(__file__), "config/prometheus.yml"),
+            container_path="/etc/prometheus/prometheus.yml",
+            read_only=True
+        ),
+        docker.ContainerVolumeArgs(
+            volume_name=prometheus_volume.name,
+            container_path="/prometheus"
+        )
+    ],
     networks_advanced=[docker.ContainerNetworksAdvancedArgs(
         name=network.name,
         aliases=["prometheus"]
     )],
-    opts=pulumi.ResourceOptions(depends_on=[network, api_container])
+    healthcheck=docker.ContainerHealthcheckArgs(
+        test=["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9090/-/healthy"],
+        interval="30s",
+        timeout="10s",
+        retries=3,
+        start_period="20s"
+    ),
+    restart="unless-stopped",
+    memory=268435456,  # 256MB
+    memory_reservation=134217728,  # 128MB soft limit
+    cpu_shares=50,
+    opts=pulumi.ResourceOptions(depends_on=[network, prometheus_volume, api_container])
 )
 
 # Export the endpoints
 pulumi.export("api_endpoint", f"http://localhost:{api_port}")
 pulumi.export("prometheus_endpoint", f"http://localhost:{prometheus_port}")
 pulumi.export("environment", environment)
+pulumi.export("volumes", {
+    "db_data": db_volume.name,
+    "prometheus_data": prometheus_volume.name
+})
