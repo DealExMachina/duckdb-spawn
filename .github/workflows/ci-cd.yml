@@ -10,6 +10,7 @@ env:
   PYTHON_VERSION: '3.10'
   PULUMI_VERSION: '3.x'
   DOCKER_IMAGE: ${{ secrets.DOCKER_HUB_USERNAME }}/duckdb-spawn
+  PULUMI_ORG: ${{ secrets.PULUMI_ORG }}
 
 jobs:
   test:
@@ -107,12 +108,21 @@ jobs:
         with:
           pulumi-version: ${{ env.PULUMI_VERSION }}
 
+      - name: Install Pulumi Dependencies
+        run: |
+          cd infrastructure/pulumi
+          python -m pip install -r requirements.txt
+
       - name: Configure and Deploy with Pulumi
         id: deploy
         run: |
           cd infrastructure/pulumi
-          pulumi stack select staging
+          pulumi login
+          pulumi stack init staging --org ${{ env.PULUMI_ORG }} || pulumi stack select staging --org ${{ env.PULUMI_ORG }}
           pulumi config set duckdb-spawn:environment staging
           pulumi config set duckdb-spawn:imageTag staging-${{ github.sha }}
+          pulumi config set duckdb-spawn:apiPort 8000
+          pulumi config set duckdb-spawn:prometheusPort 9090
+          pulumi config set duckdb-spawn:logLevel info
           pulumi up --yes
           echo "api_endpoint=$(pulumi stack output api_endpoint)" >> $GITHUB_OUTPUT 
