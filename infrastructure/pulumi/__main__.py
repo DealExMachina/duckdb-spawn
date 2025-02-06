@@ -15,8 +15,9 @@ import pulumi_docker as docker
 import os
 import subprocess
 import sys
+import time
 
-def test_docker_registry_access(username: str, password: str, image_tag: str):
+def test_docker_registry_access(username: str, password: str, image_tag: str, max_retries: int = 5, delay_seconds: int = 20):
     """Test Docker registry access before proceeding with deployment."""
     try:
         # Try to log in to Docker Hub
@@ -27,37 +28,33 @@ def test_docker_registry_access(username: str, password: str, image_tag: str):
             print("Error: Failed to authenticate with Docker Hub")
             print(f"Error details: {result.stderr}")
             sys.exit(1)
-            
-        # Try to pull a small test image
-        test_cmd = "docker pull hello-world"
-        result = subprocess.run(test_cmd, shell=True, capture_output=True, text=True)
-        
-        if result.returncode != 0:
-            print("Error: Failed to pull test image from Docker Hub")
-            print(f"Error details: {result.stderr}")
-            sys.exit(1)
 
-        # Check if our target image exists
+        # Check if our target image exists with retries
         target_image = f"jeanbapt/duckdb-spawn:{image_tag}"
         print(f"\nChecking for image: {target_image}")
         
-        # Try to inspect the image without pulling
-        inspect_cmd = f"docker manifest inspect {target_image}"
-        result = subprocess.run(inspect_cmd, shell=True, capture_output=True, text=True)
-        
-        if result.returncode != 0:
-            print(f"Warning: Image {target_image} not found in registry")
-            print(f"Error details: {result.stderr}")
-            print("\nAvailable tags for jeanbapt/duckdb-spawn:")
-            # List available tags
-            curl_cmd = f'curl -s "https://registry.hub.docker.com/v2/repositories/jeanbapt/duckdb-spawn/tags?page_size=100"'
-            result = subprocess.run(curl_cmd, shell=True, capture_output=True, text=True)
-            if result.returncode == 0:
-                print(result.stdout)
-            sys.exit(1)
+        for attempt in range(max_retries):
+            print(f"\nAttempt {attempt + 1}/{max_retries} to find image")
+            # Try to inspect the image without pulling
+            inspect_cmd = f"docker manifest inspect {target_image}"
+            result = subprocess.run(inspect_cmd, shell=True, capture_output=True, text=True)
             
-        print("Successfully verified Docker Hub registry access and image existence")
+            if result.returncode == 0:
+                print("Successfully verified image exists in Docker Hub")
+                return
+            
+            if attempt < max_retries - 1:
+                print(f"Image not found yet. Waiting {delay_seconds} seconds before next attempt...")
+                time.sleep(delay_seconds)
         
+        print(f"\nFailed to find image {target_image} after {max_retries} attempts")
+        print("\nAvailable tags for jeanbapt/duckdb-spawn:")
+        curl_cmd = f'curl -s "https://registry.hub.docker.com/v2/repositories/jeanbapt/duckdb-spawn/tags?page_size=100"'
+        result = subprocess.run(curl_cmd, shell=True, capture_output=True, text=True)
+        if result.returncode == 0:
+            print(result.stdout)
+        sys.exit(1)
+            
     except Exception as e:
         print(f"Error testing Docker registry access: {str(e)}")
         sys.exit(1)
