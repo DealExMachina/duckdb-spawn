@@ -33,7 +33,7 @@ provider = docker.Provider("docker",
     registry_auth=[{
         "username": registry_username,
         "password": registry_password,
-        "address": "https://index.docker.io/v1/"
+        "address": "docker.io"
     }]
 )
 
