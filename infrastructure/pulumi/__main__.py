@@ -96,7 +96,11 @@ network = docker.Network("duckdb-spawn-network",
         "com.docker.network.bridge.name": "duckdb-spawn",
         "com.docker.network.bridge.enable_icc": "true"
     },
-    opts=pulumi.ResourceOptions(provider=provider)
+    opts=pulumi.ResourceOptions(
+        provider=provider,
+        protect=True,  # Protect the network from deletion
+        retain_on_delete=True  # Keep the network even if the stack is destroyed
+    )
 )
 
 # Create persistent volumes
@@ -108,13 +112,19 @@ db_volume = docker.Volume("duckdb-data",
         "device": os.path.join(os.path.dirname(__file__), "../../data"),
         "o": "bind"
     },
-    opts=pulumi.ResourceOptions(provider=provider)
+    opts=pulumi.ResourceOptions(
+        provider=provider,
+        depends_on=[network]  # Ensure network exists before creating volumes
+    )
 )
 
 prometheus_volume = docker.Volume("prometheus-data",
     name="prometheus-data",
     driver="local",
-    opts=pulumi.ResourceOptions(provider=provider)
+    opts=pulumi.ResourceOptions(
+        provider=provider,
+        depends_on=[network]  # Ensure network exists before creating volumes
+    )
 )
 
 # API Container setup
@@ -137,7 +147,7 @@ api_container = docker.Container("duckdb-spawn-api",
         f"LOG_LEVEL={log_level}",
         f"ENVIRONMENT={environment}",
         "PYTHONUNBUFFERED=1",
-        "DATABASE_URL=/app/data/duckdb_spawn.db"  # Match Koyeb configuration
+        "DATABASE_URL=/app/data/duckdb_spawn.db"
     ],
     healthcheck=docker.ContainerHealthcheckArgs(
         tests=["CMD", "curl", "-f", "http://localhost:8000/health"],
@@ -152,7 +162,11 @@ api_container = docker.Container("duckdb-spawn-api",
     opts=pulumi.ResourceOptions(
         provider=provider,
         depends_on=[network, db_volume],
-        parent=network  # Make the network the parent resource
+        parent=network,
+        custom_timeouts=docker.CustomTimeouts(
+            create="5m",  # Give more time for container creation
+            delete="5m"
+        )
     )
 )
 
