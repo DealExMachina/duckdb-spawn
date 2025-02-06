@@ -123,7 +123,7 @@ jobs:
           pulumi config set duckdb-spawn:apiPort 8000
           pulumi config set duckdb-spawn:prometheusPort 9090
           pulumi config set duckdb-spawn:logLevel info
-          pulumi config set docker:username $DOCKER_USERNAME
-          pulumi config set docker:password --secret $DOCKER_PASSWORD
+          pulumi config set registry:username $DOCKER_USERNAME
+          pulumi config set registry:password --secret $DOCKER_PASSWORD
           pulumi up --yes
           echo "api_endpoint=$(pulumi stack output api_endpoint)" >> $GITHUB_OUTPUT 
