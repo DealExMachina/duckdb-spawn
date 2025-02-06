@@ -16,7 +16,7 @@ import os
 import subprocess
 import sys
 
-def test_docker_registry_access(username: str, password: str):
+def test_docker_registry_access(username: str, password: str, image_tag: str):
     """Test Docker registry access before proceeding with deployment."""
     try:
         # Try to log in to Docker Hub
@@ -36,8 +36,27 @@ def test_docker_registry_access(username: str, password: str):
             print("Error: Failed to pull test image from Docker Hub")
             print(f"Error details: {result.stderr}")
             sys.exit(1)
+
+        # Check if our target image exists
+        target_image = f"jeanbapt/duckdb-spawn:{image_tag}"
+        print(f"\nChecking for image: {target_image}")
+        
+        # Try to inspect the image without pulling
+        inspect_cmd = f"docker manifest inspect {target_image}"
+        result = subprocess.run(inspect_cmd, shell=True, capture_output=True, text=True)
+        
+        if result.returncode != 0:
+            print(f"Warning: Image {target_image} not found in registry")
+            print(f"Error details: {result.stderr}")
+            print("\nAvailable tags for jeanbapt/duckdb-spawn:")
+            # List available tags
+            curl_cmd = f'curl -s "https://registry.hub.docker.com/v2/repositories/jeanbapt/duckdb-spawn/tags?page_size=100"'
+            result = subprocess.run(curl_cmd, shell=True, capture_output=True, text=True)
+            if result.returncode == 0:
+                print(result.stdout)
+            sys.exit(1)
             
-        print("Successfully verified Docker Hub registry access")
+        print("Successfully verified Docker Hub registry access and image existence")
         
     except Exception as e:
         print(f"Error testing Docker registry access: {str(e)}")
@@ -57,7 +76,7 @@ registry_username = registry_config.require("username")
 registry_password = registry_config.require("password")
 
 # Test Docker registry access before proceeding
-test_docker_registry_access(registry_username, registry_password)
+test_docker_registry_access(registry_username, registry_password, image_tag)
 
 # Docker provider configuration
 provider = docker.Provider("docker",
