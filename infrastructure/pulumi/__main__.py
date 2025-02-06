@@ -81,15 +81,8 @@ provider = docker.Provider("docker",
     registry_auth=[{
         "username": registry_username,
         "password": registry_password,
-        "address": "docker.io"  # Use simple registry address
-    }],
-    # Add explicit registry configuration
-    registries={
-        "docker.io": {
-            "username": registry_username,
-            "password": registry_password,
-        }
-    }
+        "address": "docker.io"
+    }]
 )
 
 # Docker image configuration
