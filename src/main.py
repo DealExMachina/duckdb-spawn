@@ -14,13 +14,32 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# Configure CORS
+# Configure CORS with specific allowed origins
+allowed_origins = [
+    "https://dealexmachina.com",
+    "https://data-product-101.dealexmachina.com",
+    # Include development URLs if needed
+    "http://localhost:3000",
+    "http://localhost:8000",
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=allowed_origins,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=[
+        "Authorization",
+        "Content-Type",
+        "Accept",
+        "Origin",
+        "X-Requested-With"
+    ],
+    expose_headers=[
+        "Content-Length",
+        "Content-Range"
+    ],
+    max_age=3600,  # Cache preflight requests for 1 hour
 )
 
 # Setup Prometheus instrumentation
