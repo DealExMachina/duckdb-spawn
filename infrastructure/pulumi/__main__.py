@@ -30,11 +30,11 @@ registry_password = registry_config.require("password")
 # Docker provider configuration
 provider = docker.Provider("docker",
     host="unix:///var/run/docker.sock",
-    registry_auth=[docker.RegistryAuthArgs(
-        username=registry_username,
-        password=registry_password,
-        server_address="https://index.docker.io/v1/"
-    )]
+    registry_auth=[{
+        "username": registry_username,
+        "password": registry_password,
+        "server_address": "https://index.docker.io/v1/"
+    }]
 )
 
 # Docker image configuration
