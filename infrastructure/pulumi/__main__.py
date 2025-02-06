@@ -189,7 +189,11 @@ prometheus_container = docker.Container("prometheus",
     restart="unless-stopped",
     memory=268435456,  # 256MB in bytes
     cpu_shares=50,
-    opts=pulumi.ResourceOptions(depends_on=[network, prometheus_volume, api_container], provider=provider)
+    opts=pulumi.ResourceOptions(
+        provider=provider,
+        depends_on=[network, prometheus_volume, api_container],
+        parent=network  # Make the network the parent resource
+    )
 )
 
 # Export the endpoints
