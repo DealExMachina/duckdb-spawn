@@ -92,6 +92,8 @@ jobs:
     environment:
       name: staging
       url: ${{ steps.deploy.outputs.api_endpoint }}
+    env:
+      PULUMI_ACCESS_TOKEN: ${{ secrets.PULUMI_ACCESS_TOKEN }}
     steps:
       - uses: actions/checkout@v3
 
@@ -105,18 +107,12 @@ jobs:
         with:
           pulumi-version: ${{ env.PULUMI_VERSION }}
 
-      - name: Configure Pulumi
+      - name: Configure and Deploy with Pulumi
+        id: deploy
         run: |
           cd infrastructure/pulumi
           pulumi stack select staging
           pulumi config set duckdb-spawn:environment staging
           pulumi config set duckdb-spawn:imageTag staging-${{ github.sha }}
-
-      - name: Deploy to staging
-        id: deploy
-        run: |
-          cd infrastructure/pulumi
           pulumi up --yes
-          echo "api_endpoint=$(pulumi stack output api_endpoint)" >> $GITHUB_OUTPUT
-        env:
-          PULUMI_ACCESS_TOKEN: ${{ secrets.PULUMI_ACCESS_TOKEN }} 
+          echo "api_endpoint=$(pulumi stack output api_endpoint)" >> $GITHUB_OUTPUT 
