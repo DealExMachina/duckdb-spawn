@@ -11,6 +11,7 @@ env:
   PULUMI_VERSION: '3.x'
   DOCKER_IMAGE: ${{ secrets.DOCKER_HUB_USERNAME }}/duckdb-spawn
   PULUMI_ORG: ${{ secrets.PULUMI_ORG }}
+  STAGING_TAG: staging-${{ github.sha }}
 
 jobs:
   test:
@@ -61,10 +62,15 @@ jobs:
           # Run flake8 for additional style checks
           flake8 src/ --config=.flake8
 
-  build-and-push-staging:
+  staging-deploy:
     needs: [test, lint]
     if: github.ref == 'refs/heads/dev'
     runs-on: ubuntu-latest
+    environment:
+      name: staging
+      url: ${{ steps.deploy.outputs.api_endpoint }}
+    env:
+      PULUMI_ACCESS_TOKEN: ${{ secrets.PULUMI_ACCESS_TOKEN }}
     steps:
       - uses: actions/checkout@v3
 
@@ -82,21 +88,9 @@ jobs:
         with:
           context: .
           push: true
-          tags: ${{ env.DOCKER_IMAGE }}:staging-${{ github.sha }}
+          tags: ${{ env.DOCKER_IMAGE }}:${{ env.STAGING_TAG }}
           cache-from: type=registry,ref=${{ env.DOCKER_IMAGE }}:staging
           cache-to: type=inline
-
-  deploy-staging:
-    needs: [build-and-push-staging]
-    if: github.ref == 'refs/heads/dev'
-    runs-on: ubuntu-latest
-    environment:
-      name: staging
-      url: ${{ steps.deploy.outputs.api_endpoint }}
-    env:
-      PULUMI_ACCESS_TOKEN: ${{ secrets.PULUMI_ACCESS_TOKEN }}
-    steps:
-      - uses: actions/checkout@v3
 
       - name: Setup Python
         uses: actions/setup-python@v4
@@ -113,14 +107,14 @@ jobs:
           cd infrastructure/pulumi
           python -m pip install -r requirements.txt
 
-      - name: Configure and Deploy with Pulumi
+      - name: Deploy with Pulumi
         id: deploy
         run: |
           cd infrastructure/pulumi
           pulumi login
           pulumi stack init staging --org ${{ env.PULUMI_ORG }} || pulumi stack select staging --org ${{ env.PULUMI_ORG }}
           pulumi config set duckdb-spawn:environment staging
-          pulumi config set duckdb-spawn:imageTag staging-${{ github.sha }}
+          pulumi config set duckdb-spawn:imageTag ${{ env.STAGING_TAG }}
           pulumi config set duckdb-spawn:apiPort 8000
           pulumi config set duckdb-spawn:prometheusPort 9090
           pulumi config set duckdb-spawn:logLevel info
