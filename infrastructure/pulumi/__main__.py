@@ -13,6 +13,35 @@ import pulumi
 from pulumi import Config
 import pulumi_docker as docker
 import os
+import subprocess
+import sys
+
+def test_docker_registry_access(username: str, password: str):
+    """Test Docker registry access before proceeding with deployment."""
+    try:
+        # Try to log in to Docker Hub
+        login_cmd = f"echo {password} | docker login -u {username} --password-stdin"
+        result = subprocess.run(login_cmd, shell=True, capture_output=True, text=True)
+        
+        if result.returncode != 0:
+            print("Error: Failed to authenticate with Docker Hub")
+            print(f"Error details: {result.stderr}")
+            sys.exit(1)
+            
+        # Try to pull a small test image
+        test_cmd = "docker pull hello-world"
+        result = subprocess.run(test_cmd, shell=True, capture_output=True, text=True)
+        
+        if result.returncode != 0:
+            print("Error: Failed to pull test image from Docker Hub")
+            print(f"Error details: {result.stderr}")
+            sys.exit(1)
+            
+        print("Successfully verified Docker Hub registry access")
+        
+    except Exception as e:
+        print(f"Error testing Docker registry access: {str(e)}")
+        sys.exit(1)
 
 # Get configuration
 config = Config("duckdb-spawn")
@@ -26,6 +55,9 @@ image_tag = config.get("imageTag", "latest")
 registry_config = Config("registry")
 registry_username = registry_config.require("username")
 registry_password = registry_config.require("password")
+
+# Test Docker registry access before proceeding
+test_docker_registry_access(registry_username, registry_password)
 
 # Docker provider configuration
 provider = docker.Provider("docker",
