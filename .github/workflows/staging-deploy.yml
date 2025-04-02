@@ -53,4 +53,4 @@ jobs:
           service-env: DATABASE_URL=/data/duckdb_spawn.db PYTHONUNBUFFERED=1 LOG_LEVEL=info ENVIRONMENT=staging
           service-ports: 8000:http
           service-routes: /:8000
-          service-checks: 8000:http:/monitoring/health 
+          service-checks: 8000:http://monitoring/health 

@@ -10,10 +10,116 @@ env:
   PYTHON_VERSION: '3.10'
 
 jobs:
-  test:
+  format:
     runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Install formatting dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install black isort
+
+      - name: Format with Black and isort
+        run: |
+          black src/
+          isort src/
+          
+          # Specifically format files that were mentioned in error message
+          black src/database/connection_manager.py src/routes/admin.py
+          isort src/database/connection_manager.py src/routes/admin.py
+
+      - name: Commit changes
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "style: auto-format with Black and isort"
+          branch: ${{ github.head_ref }}
+
+  # Add a format job for push events to fix errors in CI
+  format-push:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev')
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Install formatting dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install black isort
+
+      - name: Format with Black and isort
+        run: |
+          black src/
+          isort src/
+          
+          # Specifically format files that were mentioned in error message
+          black src/database/connection_manager.py src/routes/admin.py
+          isort src/database/connection_manager.py src/routes/admin.py
+
+      - name: Commit changes
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "style: auto-format with Black and isort"
+          commit_user_name: "GitHub Actions"
+          commit_user_email: "actions@github.com"
+          commit_author: "GitHub Actions <actions@github.com>"
+
+  test:
+    runs-on: ubuntu-latest
+    needs: [format-push]
+    if: github.event_name == 'push'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest pytest-cov
+
+      - name: Run tests with coverage
+        run: |
+          pytest --cov=src --cov-report=xml
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage.xml
+          retention-days: 7
+          
+  test-pr:
+    runs-on: ubuntu-latest
+    needs: [format]
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -40,6 +146,39 @@ jobs:
 
   lint:
     runs-on: ubuntu-latest
+    needs: [format]
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Install linting dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install flake8 black isort
+
+      - name: Run linters
+        run: |
+          # Run black formatter in check mode
+          black --check src/
+          
+          # Run isort to check import sorting
+          isort --check-only src/
+          
+          # Run flake8 for additional style checks
+          flake8 src/ --config=.flake8
+
+  lint-push:
+    runs-on: ubuntu-latest
+    needs: [format-push]
+    if: github.event_name == 'push'
     steps:
       - uses: actions/checkout@v4
 
@@ -67,7 +206,7 @@ jobs:
 
   build:
     runs-on: ubuntu-latest
-    needs: [test, lint]
+    needs: [test, lint-push]
     if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev')
     steps:
       - uses: actions/checkout@v4
