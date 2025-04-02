@@ -1,4 +1,4 @@
-name: Deploy to Koyeb
+name: Deploy to Koyeb Production
 
 on:
   push:
@@ -10,49 +10,47 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
+        uses: docker/setup-buildx-action@v3
 
       - name: Login to Docker Hub
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKER_HUB_USERNAME }}
           password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
 
       - name: Build and push Docker image
         id: docker_build
-        uses: docker/build-push-action@v4
+        uses: docker/build-push-action@v5
         with:
           context: .
           push: true
-          tags: ${{ secrets.DOCKER_HUB_USERNAME }}/duckdb-spawn:${{ github.sha }}
+          tags: |
+            ${{ secrets.DOCKER_HUB_USERNAME }}/duckdb-spawn:${{ github.sha }}
+            ${{ secrets.DOCKER_HUB_USERNAME }}/duckdb-spawn:latest
+          cache-from: type=registry,ref=${{ secrets.DOCKER_HUB_USERNAME }}/duckdb-spawn:latest
+          cache-to: type=inline
 
       - name: Debug - Verify image exists
         run: |
           echo "Checking image: ${{ secrets.DOCKER_HUB_USERNAME }}/duckdb-spawn:${{ github.sha }}"
           docker pull ${{ secrets.DOCKER_HUB_USERNAME }}/duckdb-spawn:${{ github.sha }}
-          echo "Image details:"
-          docker inspect ${{ secrets.DOCKER_HUB_USERNAME }}/duckdb-spawn:${{ github.sha }}
+          echo "Image exists"
 
-      - name: Configure Koyeb
-        uses: koyeb-community/koyeb-actions@v2
-        with:
-          api_token: "${{ secrets.KOYEB_API_TOKEN }}"
-
-      - name: Deploy on Koyeb
+      - name: Deploy to Koyeb
         uses: koyeb/action-git-deploy@v1
         with:
           app-name: duckdb-spawn
           service-name: api
           service-type: web
           docker: docker.io/${{ secrets.DOCKER_HUB_USERNAME }}/duckdb-spawn:${{ github.sha }}
-          service-env: DATABASE_URL=/data/duckdb_spawn.db,PYTHONUNBUFFERED=1,LOG_LEVEL=info,ENVIRONMENT=staging
-          service-ports: 8000:http
-          service-routes: /:8000
+          docker-private-registry-secret: DOCKER_REPO_SECRET
           service-instance-type: nano
           service-regions: fra
+          service-env: DATABASE_URL=/data/duckdb_spawn.db PYTHONUNBUFFERED=1 LOG_LEVEL=info ENVIRONMENT=production
+          service-ports: 8000:http
+          service-routes: /:8000
           service-checks: 8000:http:/monitoring/health
-          docker-private-registry-secret: DOCKER_REPO_SECRET
           
