@@ -1,0 +1,59 @@
+name: Deploy to Koyeb Staging
+
+on:
+  push:
+    branches:
+      - dev
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: staging
+      url: https://duckdb-spawn-staging.koyeb.app
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKER_HUB_USERNAME }}
+          password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
+
+      - name: Build and push Docker image
+        id: docker_build
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          push: true
+          tags: ${{ secrets.DOCKER_HUB_USERNAME }}/duckdb-spawn:staging-${{ github.sha }}
+          cache-from: type=registry,ref=${{ secrets.DOCKER_HUB_USERNAME }}/duckdb-spawn:staging
+          cache-to: type=inline
+
+      - name: Debug - Verify image exists
+        run: |
+          echo "Checking image: ${{ secrets.DOCKER_HUB_USERNAME }}/duckdb-spawn:staging-${{ github.sha }}"
+          docker pull ${{ secrets.DOCKER_HUB_USERNAME }}/duckdb-spawn:staging-${{ github.sha }}
+          echo "Image details:"
+          docker inspect ${{ secrets.DOCKER_HUB_USERNAME }}/duckdb-spawn:staging-${{ github.sha }}
+
+      - name: Deploy to Koyeb
+        uses: koyeb/action-git-deploy@v1
+        with:
+          api-token: ${{ secrets.KOYEB_API_TOKEN }}
+          app-name: duckdb-spawn-staging
+          service-name: api
+          service-env: DATABASE_URL=/data/duckdb_spawn.db PYTHONUNBUFFERED=1 LOG_LEVEL=info ENVIRONMENT=staging
+          service-type: web
+          service-ports: 8000:http
+          service-routes: /:8000
+          service-instance-type: nano
+          service-regions: fra
+          service-health-check: /monitoring/health:8000
+          docker-tag: docker.io/${{ secrets.DOCKER_HUB_USERNAME }}/duckdb-spawn:staging-${{ github.sha }}
+          docker-registry-username: ${{ secrets.DOCKER_HUB_USERNAME }}
+          docker-registry-password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }} 

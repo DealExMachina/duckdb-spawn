@@ -1,5 +1,7 @@
 config:
   duckdb-spawn:apiPort: "8000"
   duckdb-spawn:prometheusPort: "9090"
-  duckdb-spawn:environment: "staging"
-  duckdb-spawn:logLevel: "info"
+  duckdb-spawn:environment: staging
+  duckdb-spawn:logLevel: info
+  duckdb-spawn:imageTag: staging-72c2fe3e03882a47874006219a00e2a1cfe8070c
+  docker:username: jeanbapt

@@ -2,12 +2,18 @@ data-product/
 ├── config/
 │   ├── __init__.py
 │   └── onto_server.py
+├── docs/
+│   ├── README.md
+│   ├── ARCHITECTURE.md
+│   ├── ROADMAP.md
+│   ├── AGENTIC_RESEARCH.md
+│   └── SIDECAR_SPEC.md
 ├── infrastructure/
 │   ├── __init__.py
 │   └── pulumi/
 │       └── __main__.py
 ├── src/
-│   ├── api/
+│   ├── routes/
 │   │   ├── __init__.py
 │   │   ├── admin.py
 │   │   ├── operations.py
@@ -17,10 +23,20 @@ data-product/
 │   │   └── jwt_handler.py
 │   ├── database/
 │   │   ├── __init__.py
-│   │   └── duckdb_manager.py
+│   │   └── connection_manager.py
+│   ├── utils/
+│   │   ├── __init__.py
+│   │   ├── logging_config.py
+│   │   └── metrics.py
 │   └── main.py
 ├── tests/
 │   └── __init__.py
+├── data/
+│   └── data_product.db
 ├── Dockerfile
 ├── requirements.txt
+├── pyproject.toml
+├── .flake8
+├── koyeb.yaml
+├── run.sh
 └── README.md 

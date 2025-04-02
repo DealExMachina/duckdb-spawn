@@ -129,7 +129,8 @@ prometheus_volume = docker.Volume("prometheus-data",
 
 # API Container setup
 api_container = docker.Container("duckdb-spawn-api",
-    name="duckdb-spawn-api",
+    # Use image tag in container name to ensure uniqueness
+    name=f"duckdb-spawn-api-{image_tag}",
     image=image_name,
     ports=[docker.ContainerPortArgs(
         internal=8000,
@@ -163,14 +164,14 @@ api_container = docker.Container("duckdb-spawn-api",
     opts=pulumi.ResourceOptions(
         provider=provider,
         depends_on=[network, db_volume],
-        replace_on_changes=["image"],  # Replace container when image changes
-        retain_on_delete=False  # Don't try to retain the container on delete
+        replace_on_changes=["image"]  # Replace container when image changes
     )
 )
 
 # Prometheus Container
 prometheus_container = docker.Container("prometheus",
-    name="prometheus",
+    # Use image tag in container name to ensure uniqueness
+    name=f"prometheus-{image_tag}",
     image="prom/prometheus:latest",
     ports=[docker.ContainerPortArgs(
         internal=9090,
@@ -205,8 +206,7 @@ prometheus_container = docker.Container("prometheus",
     opts=pulumi.ResourceOptions(
         provider=provider,
         depends_on=[network, prometheus_volume, api_container],
-        replace_on_changes=["image"],  # Replace container when image changes
-        retain_on_delete=False  # Don't try to retain the container on delete
+        replace_on_changes=["image"]  # Replace container when image changes
     )
 )
 

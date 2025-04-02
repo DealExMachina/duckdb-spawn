@@ -1,4 +1,17 @@
-"""FastAPI application main module."""
+"""FastAPI application main module.
+
+This application implements a domain-oriented data product following data mesh principles:
+1. Domain-oriented ownership: Encapsulates the project financing domain
+2. Data as a product: Well-defined APIs and documentation
+3. Self-serve data platform: Containerized with infrastructure-as-code
+4. Federated governance: Schema from ontology server with local enforcement
+
+Key architectural decisions:
+- DuckDB: Selected for analytical performance, embeddability, and low operational overhead
+- FastAPI: Provides async performance, automatic documentation, and middleware support
+- Dynamic Schema: Enables federated governance while maintaining domain autonomy
+- Connection Pool: Ensures thread safety and resource efficiency
+"""
 
 from contextlib import asynccontextmanager
 from datetime import datetime

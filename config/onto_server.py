@@ -1,3 +1,19 @@
+"""Ontology Server Integration Module.
+
+This module provides integration with the organizational ontology server,
+which acts as a central schema registry in the data mesh architecture. 
+
+The ontology server supports federated governance by:
+1. Providing domain-specific schemas that conform to organizational standards
+2. Enabling schema evolution while maintaining compatibility
+3. Supporting discoverability of data products through standardized metadata
+4. Ensuring data quality and compliance through schema validation
+
+The module includes fallback to mock responses for development and resiliency,
+implementing the circuit breaker pattern to ensure the application remains
+functional even when the ontology server is unavailable.
+"""
+
 import os
 from typing import List, Optional
 from pydantic import BaseModel

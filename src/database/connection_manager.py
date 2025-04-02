@@ -1,4 +1,19 @@
-"""Database connection management module."""
+"""Database connection management module.
+
+This module implements a thread-safe connection pool for DuckDB, addressing key requirements
+for a self-contained data product in a data mesh architecture:
+
+1. Performance: Connection pooling reduces overhead for concurrent requests
+2. Resource Efficiency: Reuses connections instead of creating new ones for each request
+3. Reliability: Proper cleanup and error handling prevent resource leaks
+4. Operational Independence: DuckDB's embedded nature eliminates external database dependencies
+
+DuckDB was chosen specifically for this data product because:
+- It provides analytical database capabilities without requiring server infrastructure
+- Its columnar storage is optimized for the types of queries needed in project financing analytics
+- The embedded architecture simplifies deployment and reduces operational complexity
+- It maintains ACID compliance while providing excellent query performance
+"""
 
 import logging
 import os

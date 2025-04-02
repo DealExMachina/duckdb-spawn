@@ -1,8 +1,8 @@
 # DuckDB Spawn API
 
-A FastAPI service that manages project data using DuckDB with dynamic schema support from an ontology server.
+A FastAPI service that manages project data using DuckDB with dynamic schema support from an ontology server. The service is designed as a modular, self-contained data product following data mesh architecture principles.
 
-## Architecture
+## Architecture Overview
 
 ```mermaid
 graph TB
@@ -66,23 +66,63 @@ graph TD
     KoyebProd --> Monitoring
 ```
 
-## Overview
+## Data Mesh Architecture Integration
 
-DuckDB Spawn API provides a dynamic project management system where the database schema is controlled by an external ontology server. The system includes:
+DuckDB Spawn API is designed as a domain-oriented, self-contained data product within a data mesh architecture. It embodies the key principles of data mesh:
 
+1. **Domain Ownership**: Encapsulates project financing data domain with complete ownership over data storage, processing, and schema evolution
+2. **Data as a Product**: Provides well-defined APIs, documentation, and SLAs for data consumers
+3. **Self-serve Data Platform**: Uses infrastructure-as-code, containerization, and automated deployments for self-service capabilities
+4. **Federated Computational Governance**: Schema definitions from an ontology server implement federated governance while maintaining domain autonomy
+
+### Why This Matters
+
+In a traditional data lake/warehouse architecture, this functionality might be implemented as tables in a central database, managed by a separate data team. In our data mesh approach:
+
+- Domain experts own both the code and data for their domain
+- Data schema evolves independently but adheres to organizational standards via the ontology server
+- The service is deployable independently without complex dependencies
+- Consumers interact with the data through APIs rather than direct database access
+
+## Architectural Decisions
+
+### Why DuckDB?
+
+DuckDB was selected for several strategic reasons:
+
+- **Analytical Performance**: DuckDB excels at analytical queries, which align with project financing data needs
+- **Embeddable Nature**: No separate database server infrastructure required, simplifying deployment
+- **Columnar Storage**: Efficient storage and querying for project metrics and time-series data
+- **Low Operational Overhead**: Fits the data product model where each domain owns its complete stack
+- **Schema Flexibility**: Easily adaptable to changing schema requirements while maintaining performance
+
+### Why Dynamic Schema from Ontology Server?
+
+The ontology server integration provides several benefits:
+
+- **Schema Governance**: Centralized schema definitions while maintaining domain autonomy
+- **Evolution Control**: Schema changes can be coordinated across multiple data products
+- **Self-documenting API**: API capabilities automatically reflect the current schema
+- **Fallback Mechanism**: Mock server ensures availability even when the ontology server is down
+
+### Connection Management Design
+
+The connection pool implementation:
+
+- **Thread Safety**: Ensures concurrent requests don't conflict when accessing the database
+- **Resource Efficiency**: Reuses connections to minimize overhead
+- **Proper Cleanup**: Ensures connections are properly closed to prevent resource leaks
+
+## Key Features
+
+- **Domain-Oriented Data Product**: Complete encapsulation of project financing data domain
 - **Dynamic Schema Management**: Database tables are created and updated based on schemas from the ontology server
 - **Connection Management**: Thread-safe DuckDB connections with proper transaction handling
 - **Mock Support**: Built-in mock responses for development when the ontology server is unavailable
 - **Health Monitoring**: System metrics and health checks including ontology server status
-
-## Key Features
-
-- Async API endpoints for project management
-- Schema-driven database operations
-- Prometheus metrics integration
-- Structured JSON logging
-- Health monitoring endpoints
-- Mock server support for development
+- **Containerized Deployment**: Self-contained, portable, and consistently deployable
+- **Infrastructure as Code**: Reproducible infrastructure defined in Pulumi
+- **API-First Design**: Clean, well-documented API endpoints for all operations
 
 ## Configuration
 
@@ -320,3 +360,12 @@ MIT License
 - Author: Jean-Baptiste Dezard
 - Email: [jeanbapt@dealexmachina.com](mailto:jeanbapt@dealexmachina.com)
 - Project: [GitHub Repository](https://github.com/jeanbapt/duckdb-spawn)
+
+## Documentation
+
+Detailed documentation for the DuckDB Spawn project is available in the `docs` directory:
+
+- [Architecture](docs/ARCHITECTURE.md): Comprehensive explanation of the system architecture and design decisions
+- [Roadmap](docs/ROADMAP.md): Future development plans and feature timelines
+- [Agentic Research](docs/AGENTIC_RESEARCH.md): Research initiative on agentic data products using small language models
+- [Sidecar Specification](docs/SIDECAR_SPEC.md): Technical specification for the agentic sidecar implementation

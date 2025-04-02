@@ -1,6 +1,18 @@
 name: duckdb-spawn
-runtime:
-  name: python
-  options:
-    virtualenv: .venv
-description: A Docker deployment for the DuckDB-SPAWN data product
+runtime: python
+description: DuckDB Data Product deployment configuration
+config:
+  duckdb-spawn:
+    apiPort: integer
+    prometheusPort: integer
+    environment: string
+    logLevel: string
+    imageTag: string
+    koyeb_token:
+      type: string
+      secret: true
+  registry:
+    username: string
+    password:
+      type: string
+      secret: true

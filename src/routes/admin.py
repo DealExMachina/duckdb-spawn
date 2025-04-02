@@ -1,4 +1,21 @@
-"""Admin routes for the application."""
+"""Admin routes for the application.
+
+In a data mesh architecture, these admin endpoints serve several key purposes:
+
+1. Schema Management: They provide the interface between the federated governance
+   (ontology server) and the local data product, enabling schema-driven operations.
+
+2. Operational Controls: They allow data product owners to manage their domain
+   without external dependencies, supporting the domain ownership principle.
+
+3. Observability: They provide visibility into the data product's state, 
+   supporting the "data as a product" principle by making the product trustworthy.
+
+These endpoints are primarily intended for:
+- Data product owners (domain teams)
+- DevOps automation
+- Monitoring systems
+"""
 
 import logging
 from typing import Dict, Literal

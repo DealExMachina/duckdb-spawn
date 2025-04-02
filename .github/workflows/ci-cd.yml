@@ -8,11 +8,6 @@ on:
 
 env:
   PYTHON_VERSION: '3.10'
-  PULUMI_VERSION: '3.x'
-  DOCKER_IMAGE: ${{ secrets.DOCKER_HUB_USERNAME }}/duckdb-spawn
-  PULUMI_ORG: ${{ secrets.PULUMI_ORG }}
-  STAGING_TAG: staging-${{ github.sha }}
-  PULUMI_STACK_NAME: ${{ secrets.PULUMI_ORG }}/duckdb-spawn/staging
 
 jobs:
   test:
@@ -61,69 +56,4 @@ jobs:
           isort --check-only src/
           
           # Run flake8 for additional style checks
-          flake8 src/ --config=.flake8
-
-  staging-deploy:
-    needs: [test, lint]
-    if: github.ref == 'refs/heads/dev'
-    runs-on: ubuntu-latest
-    environment:
-      name: staging
-      url: ${{ steps.deploy.outputs.api_endpoint }}
-    env:
-      PULUMI_ACCESS_TOKEN: ${{ secrets.PULUMI_ACCESS_TOKEN }}
-    steps:
-      - uses: actions/checkout@v3
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
-
-      - name: Login to Docker Hub
-        uses: docker/login-action@v2
-        with:
-          username: ${{ secrets.DOCKER_HUB_USERNAME }}
-          password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
-
-      - name: Build and push Docker image
-        uses: docker/build-push-action@v4
-        with:
-          context: .
-          push: true
-          tags: ${{ env.DOCKER_IMAGE }}:${{ env.STAGING_TAG }}
-          cache-from: type=registry,ref=${{ env.DOCKER_IMAGE }}:staging
-          cache-to: type=inline
-
-      - name: Setup Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-
-      - name: Setup Pulumi
-        uses: pulumi/setup-pulumi@v2
-        with:
-          pulumi-version: ${{ env.PULUMI_VERSION }}
-
-      - name: Install Pulumi Dependencies
-        run: |
-          cd infrastructure/pulumi
-          python -m pip install -r requirements.txt
-
-      - name: Deploy with Pulumi
-        id: deploy
-        env:
-          PULUMI_ACCESS_TOKEN: ${{ secrets.PULUMI_ACCESS_TOKEN }}
-          DOCKER_USERNAME: ${{ secrets.DOCKER_HUB_USERNAME }}
-          DOCKER_PASSWORD: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
-        run: |
-          cd infrastructure/pulumi
-          pulumi login
-          pulumi stack select ${{ env.PULUMI_STACK_NAME }} || pulumi stack init ${{ env.PULUMI_STACK_NAME }}
-          pulumi config set duckdb-spawn:environment staging
-          pulumi config set duckdb-spawn:imageTag ${{ env.STAGING_TAG }}
-          pulumi config set duckdb-spawn:apiPort 8000
-          pulumi config set duckdb-spawn:prometheusPort 9090
-          pulumi config set duckdb-spawn:logLevel info
-          pulumi config set registry:username $DOCKER_USERNAME
-          pulumi config set registry:password --secret $DOCKER_PASSWORD
-          pulumi up --yes
-          echo "api_endpoint=$(pulumi stack output api_endpoint)" >> $GITHUB_OUTPUT 
+          flake8 src/ --config=.flake8 
