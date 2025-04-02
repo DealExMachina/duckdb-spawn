@@ -93,6 +93,20 @@ class DuckDBConnectionManager:
             cls._pool = DuckDBConnectionPool()
         return cls._instance
 
+    async def initialize_database(self):
+        """Initialize the database connections and schema."""
+        from .duckdb_manager import DuckDBManager
+        
+        try:
+            # Initialize schema using DuckDBManager
+            db_manager = DuckDBManager()
+            # We don't need to do anything specific here as the DuckDBManager constructor 
+            # already initializes the schema
+            logger.info("Database schema initialized successfully")
+        except Exception as e:
+            logger.error(f"Failed to initialize database: {str(e)}")
+            raise
+
     @contextmanager
     def get_connection(self) -> Generator[duckdb.DuckDBPyConnection, None, None]:
         """Get a connection from the pool."""
