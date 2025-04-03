@@ -13,6 +13,11 @@ jobs:
   cleanup:
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Set branch name for manual trigger
         if: github.event_name == 'workflow_dispatch'
         run: echo "BRANCH_NAME=${{ github.event.inputs.branch }}" >> $GITHUB_ENV

@@ -110,3 +110,4 @@ If deployments to Koyeb fail:
 - **Linter Errors**: If you see YAML linter errors about environment values, remove the environment line if it's not needed
 - **Secret Access**: If secret access fails, verify that secrets are available to the workflow
 - **Action Versions**: Ensure you're using the latest versions of the GitHub Actions 
+- **Checkout Token Error**: If you see `Error: Input required and not supplied: token` with `actions/checkout@v4`, ensure you add `with: token: ${{ secrets.GITHUB_TOKEN }}` to the checkout step. 
