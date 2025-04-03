@@ -2,8 +2,6 @@ name: Cleanup Koyeb Deployments
 
 on:
   delete:
-    branches:
-      - '*'
   workflow_dispatch:
     inputs:
       branch:

@@ -77,4 +77,36 @@ The `/infrastructure/pulumi` directory contains Pulumi infrastructure code for a
 1. **Branch Protection**: Enable branch protection for `main` and `dev` branches
 2. **PR Reviews**: Require pull request reviews before merging
 3. **Environment Deployment**: Use GitHub Environments for deployment approval
-4. **Secrets Management**: Store all sensitive information in GitHub Secrets 
+4. **Secrets Management**: Store all sensitive information in GitHub Secrets
+
+## Troubleshooting
+
+### Docker Registry Authentication Issues
+
+If you encounter errors related to Docker registry authentication, such as:
+
+```
+Error while checking the validity of the docker image: The image "docker.io/****/duckdb-spawn:COMMIT_HASH" was not found.
+```
+
+Try the following steps:
+
+1. **Run Debug Workflow**: Use the `debug-docker.yml` workflow to check Docker registry access
+2. **Verify Secrets**: Ensure `DOCKER_HUB_USERNAME` and `DOCKER_HUB_ACCESS_TOKEN` are correctly set in GitHub Secrets
+3. **Check Image Tags**: Verify that your Docker image is being correctly tagged and pushed
+4. **Koyeb Secret**: Make sure the Koyeb Docker registry secret is correctly configured
+
+### Koyeb Deployment Failures
+
+If deployments to Koyeb fail:
+
+1. **API Token**: Ensure your `KOYEB_API_TOKEN` is valid and has the correct permissions
+2. **Service Configuration**: Verify the service configuration parameters in the workflow files
+3. **Resource Limits**: Check if you've hit any resource limits in your Koyeb account
+4. **Logs**: Review the Koyeb service logs for more detailed error information
+
+### Common Workflow Fixes
+
+- **Linter Errors**: If you see YAML linter errors about environment values, remove the environment line if it's not needed
+- **Secret Access**: If secret access fails, verify that secrets are available to the workflow
+- **Action Versions**: Ensure you're using the latest versions of the GitHub Actions 

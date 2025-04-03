@@ -8,7 +8,6 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    environment: staging
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -40,10 +39,26 @@ jobs:
           docker pull ${{ secrets.DOCKER_HUB_USERNAME }}/duckdb-spawn:staging-${{ github.sha }}
           echo "Image exists"
 
+      - name: List available Docker tags
+        run: |
+          echo "Listing all available tags for duckdb-spawn..."
+          curl -s "https://registry.hub.docker.com/v2/repositories/${{ secrets.DOCKER_HUB_USERNAME }}/duckdb-spawn/tags?page_size=100" | jq -r '.results[].name'
+
+      - name: Create Docker credentials file
+        run: |
+          echo "Creating Docker credentials file"
+          mkdir -p ~/.docker
+          echo '{"auths":{"https://index.docker.io/v1/":{"auth":"'$(echo -n "${{ secrets.DOCKER_HUB_USERNAME }}:${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}" | base64)'"}}}' > ~/.docker/config.json
+          echo "Docker credentials file created"
+
       - name: Install and configure the Koyeb CLI
         uses: koyeb-community/koyeb-actions@v2
         with:
           api_token: "${{ secrets.KOYEB_API_TOKEN }}"
+
+      - name: Set up Docker registry secret
+        run: |
+          koyeb secret create DOCKER_REPO_SECRET --docker-registry-auth=${{ secrets.DOCKER_HUB_USERNAME }}:${{ secrets.DOCKER_HUB_ACCESS_TOKEN }} --type=registry || echo "Secret might already exist"
 
       - name: Deploy to Koyeb
         uses: koyeb/action-git-deploy@v1
