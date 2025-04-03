@@ -92,6 +92,8 @@ jobs:
     if: github.event_name == 'push'
     steps:
       - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.WORKFLOW_PAT }}
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -124,6 +126,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.head_ref }}
+          token: ${{ secrets.WORKFLOW_PAT }}
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -156,6 +159,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.head_ref }}
+          token: ${{ secrets.WORKFLOW_PAT }}
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -185,6 +189,8 @@ jobs:
     if: github.event_name == 'push'
     steps:
       - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.WORKFLOW_PAT }}
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -214,6 +220,8 @@ jobs:
     if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev')
     steps:
       - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.WORKFLOW_PAT }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
