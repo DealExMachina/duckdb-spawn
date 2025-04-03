@@ -40,6 +40,11 @@ jobs:
           docker pull ${{ secrets.DOCKER_HUB_USERNAME }}/duckdb-spawn:staging-${{ github.sha }}
           echo "Image exists"
 
+      - name: Install and configure the Koyeb CLI
+        uses: koyeb-community/koyeb-actions@v2
+        with:
+          api_token: "${{ secrets.KOYEB_API_TOKEN }}"
+
       - name: Deploy to Koyeb
         uses: koyeb/action-git-deploy@v1
         with:

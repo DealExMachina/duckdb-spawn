@@ -8,6 +8,7 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    environment: production
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -38,6 +39,11 @@ jobs:
           echo "Checking image: ${{ secrets.DOCKER_HUB_USERNAME }}/duckdb-spawn:${{ github.sha }}"
           docker pull ${{ secrets.DOCKER_HUB_USERNAME }}/duckdb-spawn:${{ github.sha }}
           echo "Image exists"
+
+      - name: Install and configure the Koyeb CLI
+        uses: koyeb-community/koyeb-actions@v2
+        with:
+          api_token: "${{ secrets.KOYEB_API_TOKEN }}"
 
       - name: Deploy to Koyeb
         uses: koyeb/action-git-deploy@v1

@@ -1,0 +1,34 @@
+name: Cleanup Koyeb Deployments
+
+on:
+  delete:
+    branches:
+      - '*'
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Branch name to clean up'
+        required: true
+        default: ''
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set branch name for manual trigger
+        if: github.event_name == 'workflow_dispatch'
+        run: echo "BRANCH_NAME=${{ github.event.inputs.branch }}" >> $GITHUB_ENV
+
+      - name: Set branch name for delete event
+        if: github.event_name == 'delete'
+        run: echo "BRANCH_NAME=${{ github.event.ref }}" >> $GITHUB_ENV
+
+      - name: Install and configure the Koyeb CLI
+        uses: koyeb-community/koyeb-actions@v2
+        with:
+          api_token: "${{ secrets.KOYEB_API_TOKEN }}"
+
+      - name: Cleanup Koyeb application
+        uses: koyeb/action-git-deploy/cleanup@v1
+        with:
+          app-name: ${{ env.BRANCH_NAME == 'dev' && 'duckdb-spawn-staging' || 'duckdb-spawn-preview' }} 
