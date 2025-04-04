@@ -14,7 +14,21 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
+          repository: DealExMachina/duckdb-spawn
           token: ${{ secrets.GITHUB_TOKEN }}
+          ssh-strict: true
+          ssh-user: git
+          persist-credentials: true
+          clean: true
+          sparse-checkout-cone-mode: true
+          fetch-depth: 1
+          fetch-tags: false
+          show-progress: true
+          lfs: false
+          submodules: false
+          set-safe-directory: true
+        env:
+          PYTHON_VERSION: 3.10
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
