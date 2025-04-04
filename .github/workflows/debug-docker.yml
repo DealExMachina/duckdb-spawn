@@ -29,15 +29,60 @@ jobs:
           docker info
           echo "✓ Docker Hub connection verified"
 
+      - name: Check and create repository if needed
+        run: |
+          echo "Checking if repository exists..."
+          REPO_EXISTS=$(curl -s -o /dev/null -w "%{http_code}" "https://hub.docker.com/v2/repositories/${{ secrets.DOCKER_HUB_USERNAME }}/duckdb-spawn")
+          
+          if [ "$REPO_EXISTS" = "404" ]; then
+            echo "Repository does not exist, attempting to create it..."
+            LOGIN_RESPONSE=$(curl -s -X POST "https://hub.docker.com/v2/users/login/" \
+              -H "Content-Type: application/json" \
+              -d "{\"username\":\"${{ secrets.DOCKER_HUB_USERNAME }}\",\"password\":\"${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}\"}")
+            
+            echo "Login response status: $?"
+            
+            TOKEN=$(echo $LOGIN_RESPONSE | jq -r '.token')
+            
+            if [ "$TOKEN" = "null" ]; then
+              echo "❌ Failed to get authentication token. Login response:"
+              echo "$LOGIN_RESPONSE"
+              echo "This might be due to incorrect credentials or Docker Hub API changes."
+            else
+              CREATE_RESPONSE=$(curl -s -X POST "https://hub.docker.com/v2/repositories/" \
+                -H "Content-Type: application/json" \
+                -H "Authorization: JWT $TOKEN" \
+                -d "{\"namespace\":\"${{ secrets.DOCKER_HUB_USERNAME }}\",\"name\":\"duckdb-spawn\",\"description\":\"DuckDB Spawn API\",\"is_private\":false}")
+              
+              echo "Repository creation response:"
+              echo "$CREATE_RESPONSE"
+            fi
+          else
+            echo "✓ Repository exists, proceeding with checks."
+          fi
+
       - name: List available repositories
         run: |
           echo "Listing repositories for ${{ secrets.DOCKER_HUB_USERNAME }}..."
-          curl -s "https://hub.docker.com/v2/users/${{ secrets.DOCKER_HUB_USERNAME }}/repositories?page_size=100" | jq '.results[].name'
+          REPO_RESPONSE=$(curl -s "https://hub.docker.com/v2/users/${{ secrets.DOCKER_HUB_USERNAME }}/repositories?page_size=100")
+          if [[ $REPO_RESPONSE == *"\"detail\":\"Object not found\""* ]]; then
+            echo "User not found or no repositories available."
+          else
+            echo "Repositories found:"
+            echo "$REPO_RESPONSE" | jq -r '.results[].name' || echo "No repositories found or error parsing list"
+          fi
 
       - name: List available tags
         run: |
           echo "Listing tags for duckdb-spawn..."
-          curl -s "https://registry.hub.docker.com/v2/repositories/${{ secrets.DOCKER_HUB_USERNAME }}/duckdb-spawn/tags?page_size=100" | jq -r '.results[].name'
+          TAG_RESPONSE=$(curl -s "https://registry.hub.docker.com/v2/repositories/${{ secrets.DOCKER_HUB_USERNAME }}/duckdb-spawn/tags?page_size=100")
+          if [[ $TAG_RESPONSE == *"\"detail\":\"Object not found\""* || $TAG_RESPONSE == *"\"results\":null"* ]]; then
+            echo "Repository not found or no tags available."
+            echo "The repository might not exist or you might not have permission to access it."
+          else
+            echo "Tags found:"
+            echo "$TAG_RESPONSE" | jq -r '.results[].name' || echo "Error parsing tag response"
+          fi
 
       - name: Check specific tag
         run: |
@@ -45,12 +90,20 @@ jobs:
           echo "Checking for tag: $TAG"
           
           # Try to pull the image
-          if docker pull ${{ secrets.DOCKER_HUB_USERNAME }}/duckdb-spawn:${TAG}; then
+          if docker pull ${{ secrets.DOCKER_HUB_USERNAME }}/duckdb-spawn:${TAG} 2>/dev/null; then
             echo "✓ Successfully pulled image ${{ secrets.DOCKER_HUB_USERNAME }}/duckdb-spawn:${TAG}"
           else
             echo "✗ Failed to pull image ${{ secrets.DOCKER_HUB_USERNAME }}/duckdb-spawn:${TAG}"
-            echo "Available tags are:"
-            curl -s "https://registry.hub.docker.com/v2/repositories/${{ secrets.DOCKER_HUB_USERNAME }}/duckdb-spawn/tags?page_size=100" | jq -r '.results[].name'
+            echo "The image may not exist or you may not have permission to access it."
+            echo "Let's check Docker Hub directly..."
+            
+            TAG_RESPONSE=$(curl -s "https://registry.hub.docker.com/v2/repositories/${{ secrets.DOCKER_HUB_USERNAME }}/duckdb-spawn/tags?page_size=100")
+            if [[ $TAG_RESPONSE == *"\"detail\":\"Object not found\""* || $TAG_RESPONSE == *"\"results\":null"* ]]; then
+              echo "Repository not found or no tags available."
+            else
+              echo "Available tags are:"
+              echo "$TAG_RESPONSE" | jq -r '.results[].name' || echo "Error parsing tag response"
+            fi
           fi
 
       - name: Create and test Docker secret for Koyeb
@@ -72,4 +125,21 @@ jobs:
           
           # Try to get the secret
           echo "Verifying secret in Koyeb..."
-          koyeb secret get DOCKER_REPO_SECRET 
+          koyeb secret get DOCKER_REPO_SECRET
+
+      - name: Create and push test image
+        if: github.event.inputs.image_tag == 'latest'
+        run: |
+          echo "Creating a simple test image to verify Docker Hub push access..."
+          echo "FROM hello-world" > Dockerfile.test
+          
+          echo "Building test image..."
+          docker build -t ${{ secrets.DOCKER_HUB_USERNAME }}/duckdb-spawn:test-${{ github.run_id }} -f Dockerfile.test .
+          
+          echo "Pushing test image..."
+          if docker push ${{ secrets.DOCKER_HUB_USERNAME }}/duckdb-spawn:test-${{ github.run_id }}; then
+            echo "✓ Successfully pushed test image to Docker Hub"
+          else
+            echo "❌ Failed to push test image to Docker Hub"
+            echo "This might be due to insufficient permissions or Docker Hub API issues."
+          fi 

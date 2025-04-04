@@ -56,9 +56,19 @@ jobs:
         with:
           api_token: "${{ secrets.KOYEB_API_TOKEN }}"
 
-      - name: Set up Docker registry secret
+      - name: Verify Docker registry secret exists
         run: |
-          koyeb secret create DOCKER_REPO_SECRET --docker-registry-auth=${{ secrets.DOCKER_HUB_USERNAME }}:${{ secrets.DOCKER_HUB_ACCESS_TOKEN }} --type=registry || echo "Secret might already exist"
+          echo "Checking for existing Docker registry secret..."
+          if koyeb secret get DOCKER_REPO_SECRET &>/dev/null; then
+            echo "✅ Found existing Docker registry secret, using it for deployment"
+          else
+            echo "⚠️ Docker registry secret not found. Creating it..."
+            koyeb secret create DOCKER_REPO_SECRET \
+              --docker-registry-auth=${{ secrets.DOCKER_HUB_USERNAME }}:${{ secrets.DOCKER_HUB_ACCESS_TOKEN }} \
+              --docker-registry-server=docker.io \
+              --type=registry
+            echo "Docker registry secret created"
+          fi
 
       - name: Deploy to Koyeb
         uses: koyeb/action-git-deploy@v1

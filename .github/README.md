@@ -96,6 +96,22 @@ Try the following steps:
 3. **Check Image Tags**: Verify that your Docker image is being correctly tagged and pushed
 4. **Koyeb Secret**: Make sure the Koyeb Docker registry secret is correctly configured
 
+If you see errors like:
+
+```
+jq: error (at <stdin>:1): Cannot iterate over null (null)
+```
+
+This usually means:
+1. The Docker Hub repository doesn't exist yet - the workflow should now auto-create it
+2. Your Docker Hub credentials don't have permission to access or create repositories
+3. The Docker Hub API might be experiencing issues
+
+To resolve these problems:
+1. Run the `debug-docker.yml` workflow which will try to create the repository
+2. Check that your Docker Hub access token has appropriate permissions (read, write, delete)
+3. If auto-creation fails, manually create the repository in the Docker Hub web interface
+
 ### Koyeb Deployment Failures
 
 If deployments to Koyeb fail:
@@ -104,6 +120,22 @@ If deployments to Koyeb fail:
 2. **Service Configuration**: Verify the service configuration parameters in the workflow files
 3. **Resource Limits**: Check if you've hit any resource limits in your Koyeb account
 4. **Logs**: Review the Koyeb service logs for more detailed error information
+
+For detailed Koyeb deployment troubleshooting, see the [Koyeb Deployment Guide](./.github/KOYEB-DEPLOYMENT.md).
+
+### Robust Deployment Strategy
+
+Our deployment workflow now includes:
+
+1. **Multi-stage verification** of Docker images
+2. **Multiple deployment methods** with fallbacks if the primary method fails:
+   - GitHub Action-based deployment
+   - Direct CLI deployment
+   - Service update method
+3. **Detailed error reporting** at each stage
+4. **Registry authentication optimization** to resolve common image access issues
+
+This approach ensures maximum reliability for deployments to both staging and production environments.
 
 ### Common Workflow Fixes
 

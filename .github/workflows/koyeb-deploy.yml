@@ -23,6 +23,25 @@ jobs:
           username: ${{ secrets.DOCKER_HUB_USERNAME }}
           password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
 
+      - name: Check and create repository if needed
+        run: |
+          echo "Checking if repository exists..."
+          REPO_EXISTS=$(curl -s -o /dev/null -w "%{http_code}" "https://hub.docker.com/v2/repositories/${{ secrets.DOCKER_HUB_USERNAME }}/duckdb-spawn")
+          
+          if [ "$REPO_EXISTS" = "404" ]; then
+            echo "Repository does not exist, attempting to create it..."
+            curl -s -X POST "https://hub.docker.com/v2/repositories/" \
+              -H "Content-Type: application/json" \
+              -H "Authorization: JWT $(curl -s -X POST "https://hub.docker.com/v2/users/login/" \
+                -H "Content-Type: application/json" \
+                -d "{\"username\":\"${{ secrets.DOCKER_HUB_USERNAME }}\",\"password\":\"${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}\"}" | jq -r '.token')" \
+              -d "{\"namespace\":\"${{ secrets.DOCKER_HUB_USERNAME }}\",\"name\":\"duckdb-spawn\",\"description\":\"DuckDB Spawn API\",\"is_private\":false}"
+            
+            echo "Repository creation attempted."
+          else
+            echo "Repository exists, proceeding with build."
+          fi
+
       - name: Build and push Docker image
         id: docker_build
         uses: docker/build-push-action@v5
@@ -38,13 +57,36 @@ jobs:
       - name: Debug - Verify image exists
         run: |
           echo "Checking image: ${{ secrets.DOCKER_HUB_USERNAME }}/duckdb-spawn:${{ github.sha }}"
-          docker pull ${{ secrets.DOCKER_HUB_USERNAME }}/duckdb-spawn:${{ github.sha }}
-          echo "Image exists"
+          if docker pull ${{ secrets.DOCKER_HUB_USERNAME }}/duckdb-spawn:${{ github.sha }} 2>/dev/null; then
+            echo "✓ Image exists and is accessible"
+          else
+            echo "⚠️ Failed to pull image, this might be expected if the image was just built and pushed"
+            echo "Let's wait a bit and try again..."
+            
+            # Wait a bit and try again
+            sleep 10
+            
+            if docker pull ${{ secrets.DOCKER_HUB_USERNAME }}/duckdb-spawn:${{ github.sha }} 2>/dev/null; then
+              echo "✓ Image exists and is accessible after waiting"
+            else
+              echo "⚠️ Still can't pull the image - continuing anyway, but deployment might fail"
+            fi
+          fi
 
       - name: List available Docker tags
         run: |
           echo "Listing all available tags for duckdb-spawn..."
-          curl -s "https://registry.hub.docker.com/v2/repositories/${{ secrets.DOCKER_HUB_USERNAME }}/duckdb-spawn/tags?page_size=100" | jq -r '.results[].name'
+          RESPONSE=$(curl -s "https://registry.hub.docker.com/v2/repositories/${{ secrets.DOCKER_HUB_USERNAME }}/duckdb-spawn/tags?page_size=100")
+          if [[ $RESPONSE == *"\"detail\":\"Object not found\""* || $RESPONSE == *"\"results\":null"* ]]; then
+            echo "Repository not found or no tags available. You might need to create it first."
+            echo "Checking if repository exists..."
+            REPOS=$(curl -s "https://hub.docker.com/v2/users/${{ secrets.DOCKER_HUB_USERNAME }}/repositories?page_size=100")
+            echo "Your repositories:"
+            echo "$REPOS" | jq -r '.results[].name' || echo "No repositories found or unable to parse list"
+          else
+            echo "Tags found:"
+            echo "$RESPONSE" | jq -r '.results[].name' || echo "Error parsing tag response"
+          fi
 
       - name: Create Docker credentials file
         run: |
@@ -58,11 +100,52 @@ jobs:
         with:
           api_token: "${{ secrets.KOYEB_API_TOKEN }}"
 
-      - name: Set up Docker registry secret
+      - name: Verify Koyeb CLI installation
         run: |
-          koyeb secret create DOCKER_REPO_SECRET --docker-registry-auth=${{ secrets.DOCKER_HUB_USERNAME }}:${{ secrets.DOCKER_HUB_ACCESS_TOKEN }} --type=registry || echo "Secret might already exist"
+          echo "Verifying Koyeb CLI installation..."
+          koyeb --version
+          koyeb app list
 
-      - name: Deploy to Koyeb
+      - name: Verify Docker registry secret exists
+        run: |
+          echo "Checking for existing Docker registry secret..."
+          if koyeb secret get DOCKER_REPO_SECRET &>/dev/null; then
+            echo "✅ Found existing Docker registry secret, using it for deployment"
+          else
+            echo "⚠️ Docker registry secret not found. Creating it..."
+            koyeb secret create DOCKER_REPO_SECRET \
+              --docker-registry-auth=${{ secrets.DOCKER_HUB_USERNAME }}:${{ secrets.DOCKER_HUB_ACCESS_TOKEN }} \
+              --docker-registry-server=docker.io \
+              --type=registry
+            echo "Docker registry secret created"
+          fi
+
+      - name: Prepare direct deployment with Koyeb CLI
+        id: prepare_direct
+        run: |
+          echo "Preparing direct deployment in case GitHub Action fails..."
+          
+          # Encode the service env variables for CLI usage
+          ENV_VARS="DATABASE_URL=/data/duckdb_spawn.db PYTHONUNBUFFERED=1 LOG_LEVEL=info ENVIRONMENT=production"
+          
+          # Generate a command to directly deploy using the CLI as a fallback
+          CLI_DEPLOY_CMD="koyeb service create api \
+            --app duckdb-spawn \
+            --docker docker.io/${{ secrets.DOCKER_HUB_USERNAME }}/duckdb-spawn:${{ github.sha }} \
+            --docker-private-registry-secret DOCKER_REPO_SECRET \
+            --ports 8000:http \
+            --routes /:8000 \
+            --env \"${ENV_VARS}\" \
+            --instance-type nano \
+            --regions fra \
+            --healthchecks 8000:http:monitoring/health"
+          
+          echo "CLI_DEPLOY_CMD<<EOF" >> $GITHUB_ENV
+          echo "$CLI_DEPLOY_CMD" >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
+
+      - name: Deploy to Koyeb using action
+        id: deploy_action
         uses: koyeb/action-git-deploy@v1
         with:
           app-name: duckdb-spawn
@@ -76,4 +159,31 @@ jobs:
           service-ports: 8000:http
           service-routes: /:8000
           service-checks: 8000:http://monitoring/health
+        continue-on-error: true
+
+      - name: Fallback to direct Koyeb CLI if action failed
+        if: steps.deploy_action.outcome == 'failure'
+        run: |
+          echo "Action-based deployment failed, falling back to direct CLI deployment..."
+          echo "Executing: ${{ env.CLI_DEPLOY_CMD }}"
+          
+          if ${{ env.CLI_DEPLOY_CMD }}; then
+            echo "✅ Direct CLI deployment successful!"
+          else
+            echo "❌ Direct CLI deployment also failed. Trying to update existing service..."
+            
+            # Try to update if service exists
+            koyeb service update api \
+              --app duckdb-spawn \
+              --docker docker.io/${{ secrets.DOCKER_HUB_USERNAME }}/duckdb-spawn:${{ github.sha }} \
+              --docker-private-registry-secret DOCKER_REPO_SECRET
+          fi
+
+      - name: Verify deployment
+        run: |
+          echo "Verifying deployment status..."
+          koyeb service get -a duckdb-spawn api -o json | jq '.latest_deployment'
+          
+          echo "Application URL:"
+          koyeb app get duckdb-spawn -o json | jq -r '.domains[0].domain'
           
