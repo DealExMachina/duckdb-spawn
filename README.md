@@ -184,6 +184,22 @@ pip install -r requirements.txt
 uvicorn src.main:app --reload
 ```
 
+## GitHub Workflows
+
+This project uses GitHub Actions for CI/CD pipelines, testing, and deployments. To use these workflows, you'll need to set up the following secrets:
+
+### Required Secrets
+
+- `WORKFLOW_PAT`: A GitHub Personal Access Token with `repo` and `workflow` scopes. This is used for actions that need to access the repository, especially for cross-repository checkout operations.
+- `DOCKER_HUB_USERNAME`: Your Docker Hub username
+- `DOCKER_HUB_ACCESS_TOKEN`: Docker Hub access token for pushing images
+- `KOYEB_API_TOKEN`: API token for Koyeb deployments
+
+To create a Personal Access Token (PAT):
+1. Go to GitHub Settings → Developer Settings → Personal access tokens → Tokens (classic)
+2. Generate a new token with at least the `repo` and `workflow` scopes
+3. Add this token as a repository secret named `WORKFLOW_PAT`
+
 ## Testing
 
 Run tests with pytest:
@@ -343,13 +359,11 @@ cd infrastructure/monitoring
 docker-compose up -d --force-recreate
 ```
 
-## Troubleshooting Koyeb Deployment
+## Troubleshooting Docker Registry Secrets
 
-### Docker Registry Secrets
+When deploying to Koyeb with a private Docker registry, ensure:
 
-When deploying to Koyeb, the workflow uses a Docker registry secret named `DOCKER_REPO_SECRET` to authenticate with Docker Hub. If you encounter deployment issues related to Docker images not being found, verify:
-
-1. The Docker registry secret exists in Koyeb:
+1. The secret exists:
    ```bash
    koyeb secret get DOCKER_REPO_SECRET
    ```
