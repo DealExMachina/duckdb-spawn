@@ -343,6 +343,53 @@ cd infrastructure/monitoring
 docker-compose up -d --force-recreate
 ```
 
+## Troubleshooting Koyeb Deployment
+
+### Docker Registry Secrets
+
+When deploying to Koyeb, the workflow uses a Docker registry secret named `DOCKER_REPO_SECRET` to authenticate with Docker Hub. If you encounter deployment issues related to Docker images not being found, verify:
+
+1. The Docker registry secret exists in Koyeb:
+   ```bash
+   koyeb secret get DOCKER_REPO_SECRET
+   ```
+
+2. The Docker registry secret has the correct format:
+   ```bash
+   koyeb secret create DOCKER_REPO_SECRET \
+     --docker-registry-auth=YOUR_USERNAME:YOUR_PASSWORD \
+     --docker-registry-server=docker.io \
+     --type=registry
+   ```
+
+3. The Docker image reference in the deployment command includes the full path:
+   ```
+   docker.io/username/duckdb-spawn:tag
+   ```
+
+4. The deployment command correctly references the secret:
+   ```
+   --docker-private-registry-secret DOCKER_REPO_SECRET
+   ```
+
+### Koyeb CLI Commands
+
+Note that some Koyeb CLI commands might have changed. To verify Koyeb CLI installation and get help:
+
+```bash
+koyeb --help
+```
+
+To list available apps:
+```bash
+koyeb app list
+```
+
+To check service status:
+```bash
+koyeb service get -a app-name service-name
+```
+
 ## License
 
 MIT License

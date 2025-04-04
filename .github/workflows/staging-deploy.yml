@@ -117,7 +117,7 @@ jobs:
       - name: Verify Koyeb CLI installation
         run: |
           echo "Verifying Koyeb CLI installation..."
-          koyeb --version
+          koyeb --help
           koyeb app list
 
       - name: Verify Docker registry secret exists
