@@ -13,7 +13,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: DealExMachina/duckdb-spawn
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.WORKFLOW_PAT }}
           ssh-strict: true
           ssh-user: git
           persist-credentials: true
@@ -36,25 +36,6 @@ jobs:
         with:
           username: ${{ secrets.DOCKER_HUB_USERNAME }}
           password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
-
-      - name: Check and create repository if needed
-        run: |
-          echo "Checking if repository exists..."
-          REPO_EXISTS=$(curl -s -o /dev/null -w "%{http_code}" "https://hub.docker.com/v2/repositories/${{ secrets.DOCKER_HUB_USERNAME }}/duckdb-spawn")
-          
-          if [ "$REPO_EXISTS" = "404" ]; then
-            echo "Repository does not exist, attempting to create it..."
-            curl -s -X POST "https://hub.docker.com/v2/repositories/" \
-              -H "Content-Type: application/json" \
-              -H "Authorization: JWT $(curl -s -X POST "https://hub.docker.com/v2/users/login/" \
-                -H "Content-Type: application/json" \
-                -d "{\"username\":\"${{ secrets.DOCKER_HUB_USERNAME }}\",\"password\":\"${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}\"}" | jq -r '.token')" \
-              -d "{\"namespace\":\"${{ secrets.DOCKER_HUB_USERNAME }}\",\"name\":\"duckdb-spawn\",\"description\":\"DuckDB Spawn API\",\"is_private\":false}"
-            
-            echo "Repository creation attempted."
-          else
-            echo "Repository exists, proceeding with build."
-          fi
 
       - name: Build and push Docker image
         id: docker_build
@@ -99,158 +80,23 @@ jobs:
             echo "This might be due to Docker Hub delays or API limitations"
             echo "Will attempt deployment anyway, but it might fail if the image isn't ready"
             echo "image_available=false" >> $GITHUB_OUTPUT
-          fi
-
-      - name: Verify Docker image existence via API
-        if: steps.wait_for_image.outputs.image_available != 'true'
-        run: |
-          echo "Verifying image existence via Docker Hub API..."
-          TOKEN=$(curl -s -H "Content-Type: application/json" -X POST -d '{"username": "${{ secrets.DOCKER_HUB_USERNAME }}", "password": "${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}"}' https://hub.docker.com/v2/users/login/ | jq -r .token)
-          
-          if [ "$TOKEN" != "null" ] && [ -n "$TOKEN" ]; then
-            echo "Got API token for Docker Hub"
             
-            # Poll for tag existence with retries
-            MAX_API_ATTEMPTS=5
-            API_ATTEMPT=1
-            
-            while [ $API_ATTEMPT -le $MAX_API_ATTEMPTS ]; do
-              echo "API Attempt $API_ATTEMPT of $MAX_API_ATTEMPTS: Checking tag existence..."
-              
-              TAG_INFO=$(curl -s -H "Authorization: JWT ${TOKEN}" "https://hub.docker.com/v2/repositories/${{ secrets.DOCKER_HUB_USERNAME }}/duckdb-spawn/tags/staging-${{ github.sha }}/")
-              
-              if [[ $TAG_INFO != *"\"detail\":\"Object not found\""* && $TAG_INFO != *"\"results\":null"* && $TAG_INFO != "" ]]; then
-                echo "✅ Tag found via API on attempt $API_ATTEMPT"
-                break
-              else
-                echo "⏳ Tag not yet available via API. Waiting before next attempt..."
-                sleep 20  # Wait 20 seconds between API checks
-                API_ATTEMPT=$((API_ATTEMPT + 1))
-              fi
-            done
-          else
-            echo "❌ Failed to get API token for Docker Hub"
+            # List available tags to help diagnose issues
+            echo "All available tags in repository:"
+            curl -s "https://registry.hub.docker.com/v2/repositories/${{ secrets.DOCKER_HUB_USERNAME }}/duckdb-spawn/tags?page_size=100" | jq -r '.results[].name' || echo "Error listing tags"
           fi
-          
-          # List all available tags to help diagnose issues
-          echo "All available tags in repository:"
-          curl -s "https://registry.hub.docker.com/v2/repositories/${{ secrets.DOCKER_HUB_USERNAME }}/duckdb-spawn/tags?page_size=100" | jq -r '.results[].name' || echo "Error listing tags"
-
-      - name: List available Docker tags
-        run: |
-          echo "Listing all available tags for duckdb-spawn..."
-          RESPONSE=$(curl -s "https://registry.hub.docker.com/v2/repositories/${{ secrets.DOCKER_HUB_USERNAME }}/duckdb-spawn/tags?page_size=100")
-          if [[ $RESPONSE == *"\"detail\":\"Object not found\""* || $RESPONSE == *"\"results\":null"* ]]; then
-            echo "Repository not found or no tags available. You might need to create it first."
-            echo "Checking if repository exists..."
-            REPOS=$(curl -s "https://hub.docker.com/v2/users/${{ secrets.DOCKER_HUB_USERNAME }}/repositories?page_size=100")
-            echo "Your repositories:"
-            echo "$REPOS" | jq -r '.results[].name' || echo "No repositories found or unable to parse list"
-          else
-            echo "Tags found:"
-            echo "$RESPONSE" | jq -r '.results[].name' || echo "Error parsing tag response"
-          fi
-
-      - name: Create Docker credentials file
-        run: |
-          echo "Creating Docker credentials file"
-          mkdir -p ~/.docker
-          echo '{"auths":{"https://index.docker.io/v1/":{"auth":"'$(echo -n "${{ secrets.DOCKER_HUB_USERNAME }}:${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}" | base64)'"}}}' > ~/.docker/config.json
-          echo "Docker credentials file created"
-
-      - name: Advanced Docker Registry Diagnostics
-        run: |
-          echo "==== EXTENDED DOCKER DIAGNOSTICS ===="
-          
-          # Verify Docker login works
-          echo "Testing Docker Hub login..."
-          docker logout
-          if echo "${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}" | docker login -u "${{ secrets.DOCKER_HUB_USERNAME }}" --password-stdin; then
-            echo "✅ Docker Hub login successful"
-          else
-            echo "❌ Docker Hub login failed - check credentials"
-          fi
-          
-          # Check if Docker image can be accessed with docker directly
-          DOCKER_IMAGE="${{ secrets.DOCKER_HUB_USERNAME }}/duckdb-spawn:staging-${{ github.sha }}"
-          FULL_IMAGE_PATH="docker.io/${DOCKER_IMAGE}"
-          
-          echo "Checking image access via Docker CLI: ${DOCKER_IMAGE}"
-          if docker pull "${DOCKER_IMAGE}" 2>/dev/null; then
-            echo "✅ Image accessible via Docker CLI"
-          else
-            echo "❌ Image NOT accessible via Docker CLI"
-          fi
-          
-          # Check image access via API
-          echo "Checking image via Docker Hub API..."
-          TOKEN=$(curl -s -H "Content-Type: application/json" -X POST -d '{"username": "${{ secrets.DOCKER_HUB_USERNAME }}", "password": "${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}"}' https://hub.docker.com/v2/users/login/ | jq -r .token)
-          
-          if [ "$TOKEN" != "null" ] && [ -n "$TOKEN" ]; then
-            echo "✅ Got API token for Docker Hub"
-            
-            # Check repository existence
-            REPO_INFO=$(curl -s -H "Authorization: JWT ${TOKEN}" "https://hub.docker.com/v2/repositories/${{ secrets.DOCKER_HUB_USERNAME }}/duckdb-spawn/")
-            echo "Repository info: ${REPO_INFO}"
-            
-            # Check tag existence
-            TAG_INFO=$(curl -s -H "Authorization: JWT ${TOKEN}" "https://hub.docker.com/v2/repositories/${{ secrets.DOCKER_HUB_USERNAME }}/duckdb-spawn/tags/staging-${{ github.sha }}/")
-            echo "Tag info: ${TAG_INFO}"
-          else
-            echo "❌ Failed to get API token for Docker Hub"
-          fi
-          
-          # Print the exact format to be used by Koyeb
-          echo "==== DOCKER IMAGE REFERENCE FOR KOYEB ===="
-          echo "docker.io/${{ secrets.DOCKER_HUB_USERNAME }}/duckdb-spawn:staging-${{ github.sha }}"
-          echo "========================================"
 
       - name: Install and configure the Koyeb CLI
         uses: koyeb-community/koyeb-actions@v2
         with:
           api_token: "${{ secrets.KOYEB_API_TOKEN }}"
 
-      - name: Verify Koyeb CLI installation
+      - name: Verify Koyeb CLI and Docker registry secret
         run: |
           echo "Verifying Koyeb CLI installation..."
           koyeb --help
           koyeb app list
-
-      - name: Koyeb Docker Registry Diagnostic
-        run: |
-          echo "==== KOYEB REGISTRY SECRET DIAGNOSTIC ===="
           
-          # Check if secret exists and get its details
-          echo "Checking Docker registry secret in Koyeb..."
-          if koyeb secret get DOCKER_REPO_SECRET -o json 2>/dev/null; then
-            echo "✅ Secret exists in Koyeb"
-          else
-            echo "❌ Secret NOT found in Koyeb"
-          fi
-          
-          # Create diagnostic secret to confirm secret creation works
-          echo "Creating diagnostic registry secret..."
-          DIAG_SECRET_NAME="DOCKER_REPO_SECRET_DIAG_$(date +%s)"
-          if koyeb secret create ${DIAG_SECRET_NAME} \
-            --docker-registry-auth=${{ secrets.DOCKER_HUB_USERNAME }}:${{ secrets.DOCKER_HUB_ACCESS_TOKEN }} \
-            --docker-registry-server=docker.io \
-            --type=registry; then
-            
-            echo "✅ Diagnostic secret created successfully"
-            echo "Retrieving diagnostic secret..."
-            koyeb secret get ${DIAG_SECRET_NAME} -o json
-            
-            # Clean up diagnostic secret
-            echo "Cleaning up diagnostic secret..."
-            koyeb secret delete ${DIAG_SECRET_NAME} -y
-          else
-            echo "❌ Failed to create diagnostic secret"
-          fi
-          
-          echo "================================================="
-
-      - name: Verify Docker registry secret exists
-        run: |
           echo "Checking for existing Docker registry secret..."
           if koyeb secret get DOCKER_REPO_SECRET &>/dev/null; then
             echo "✅ Found existing Docker registry secret, using it for deployment"
