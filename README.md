@@ -184,6 +184,22 @@ pip install -r requirements.txt
 uvicorn src.main:app --reload
 ```
 
+## GitHub Workflows
+
+This project uses GitHub Actions for CI/CD pipelines, testing, and deployments. To use these workflows, you'll need to set up the following secrets:
+
+### Required Secrets
+
+- `WORKFLOW_PAT`: A GitHub Personal Access Token with `repo` and `workflow` scopes. This is used for actions that need to access the repository, especially for cross-repository checkout operations.
+- `DOCKER_HUB_USERNAME`: Your Docker Hub username
+- `DOCKER_HUB_ACCESS_TOKEN`: Docker Hub access token for pushing images
+- `KOYEB_API_TOKEN`: API token for Koyeb deployments
+
+To create a Personal Access Token (PAT):
+1. Go to GitHub Settings → Developer Settings → Personal access tokens → Tokens (classic)
+2. Generate a new token with at least the `repo` and `workflow` scopes
+3. Add this token as a repository secret named `WORKFLOW_PAT`
+
 ## Testing
 
 Run tests with pytest:
@@ -341,6 +357,51 @@ pulumi up
 cd infrastructure/monitoring
 # Edit prometheus.yml or grafana dashboards
 docker-compose up -d --force-recreate
+```
+
+## Troubleshooting Docker Registry Secrets
+
+When deploying to Koyeb with a private Docker registry, ensure:
+
+1. The secret exists:
+   ```bash
+   koyeb secret get DOCKER_REPO_SECRET
+   ```
+
+2. The Docker registry secret has the correct format:
+   ```bash
+   koyeb secret create DOCKER_REPO_SECRET \
+     --docker-registry-auth=YOUR_USERNAME:YOUR_PASSWORD \
+     --docker-registry-server=docker.io \
+     --type=registry
+   ```
+
+3. The Docker image reference in the deployment command includes the full path:
+   ```
+   docker.io/username/duckdb-spawn:tag
+   ```
+
+4. The deployment command correctly references the secret:
+   ```
+   --docker-private-registry-secret DOCKER_REPO_SECRET
+   ```
+
+### Koyeb CLI Commands
+
+Note that some Koyeb CLI commands might have changed. To verify Koyeb CLI installation and get help:
+
+```bash
+koyeb --help
+```
+
+To list available apps:
+```bash
+koyeb app list
+```
+
+To check service status:
+```bash
+koyeb service get -a app-name service-name
 ```
 
 ## License

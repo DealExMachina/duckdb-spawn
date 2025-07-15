@@ -1,0 +1,143 @@
+name: PR Preview Deployment
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches:
+      - main
+      - dev
+
+jobs:
+  deploy-preview:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          repository: DealExMachina/duckdb-spawn
+          token: ${{ secrets.WORKFLOW_PAT }}
+          ssh-strict: true
+          ssh-user: git
+          persist-credentials: true
+          clean: true
+          sparse-checkout-cone-mode: true
+          fetch-depth: 1
+          fetch-tags: false
+          show-progress: true
+          lfs: false
+          submodules: false
+          set-safe-directory: true
+        env:
+          PYTHON_VERSION: 3.10
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_HUB_USERNAME }}
+          password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
+
+      - name: Extract branch name
+        shell: bash
+        run: |
+          echo "BRANCH_NAME=$(echo ${GITHUB_HEAD_REF} | tr / -)" >> $GITHUB_ENV
+          echo "Branch name: ${GITHUB_HEAD_REF}"
+          echo "Sanitized: $(echo ${GITHUB_HEAD_REF} | tr / -)"
+
+      - name: Build and push Docker image
+        id: docker_build
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ secrets.DOCKER_HUB_USERNAME }}/duckdb-spawn:preview-${{ env.BRANCH_NAME }}-${{ github.sha }}
+            ${{ secrets.DOCKER_HUB_USERNAME }}/duckdb-spawn:preview-${{ env.BRANCH_NAME }}
+          cache-from: type=registry,ref=${{ secrets.DOCKER_HUB_USERNAME }}/duckdb-spawn:preview-${{ env.BRANCH_NAME }}
+          cache-to: type=inline
+
+      - name: Wait for image to be available
+        id: wait_for_image
+        run: |
+          echo "Waiting for image to be available in Docker Hub..."
+          MAX_ATTEMPTS=6  # Reduced attempts for PR previews for faster feedback
+          ATTEMPT=1
+          IMAGE_AVAILABLE=false
+          
+          while [ $ATTEMPT -le $MAX_ATTEMPTS ] && [ "$IMAGE_AVAILABLE" = "false" ]; do
+            echo "Attempt $ATTEMPT of $MAX_ATTEMPTS: Checking if image exists..."
+            
+            # Try to pull the image
+            if docker pull ${{ secrets.DOCKER_HUB_USERNAME }}/duckdb-spawn:preview-${{ env.BRANCH_NAME }}-${{ github.sha }} 2>/dev/null; then
+              echo "✅ Image exists and is accessible on attempt $ATTEMPT"
+              IMAGE_AVAILABLE=true
+              break
+            else
+              echo "⏳ Image not yet available. Waiting before next attempt..."
+              sleep 20  # Reduced wait time for PR previews
+              ATTEMPT=$((ATTEMPT + 1))
+            fi
+          done
+          
+          if [ "$IMAGE_AVAILABLE" = "false" ]; then
+            echo "⚠️ WARNING: Image could not be verified, but proceeding with deployment"
+          fi
+
+      - name: Install and configure the Koyeb CLI
+        uses: koyeb-community/koyeb-actions@v2
+        with:
+          api_token: "${{ secrets.KOYEB_API_TOKEN }}"
+
+      - name: Verify Docker registry secret exists
+        run: |
+          echo "Checking for existing Docker registry secret..."
+          if koyeb secret get DOCKER_REPO_SECRET &>/dev/null; then
+            echo "✅ Found existing Docker registry secret, using it for deployment"
+          else
+            echo "⚠️ Docker registry secret not found. Creating it..."
+            koyeb secret create DOCKER_REPO_SECRET \
+              --docker-registry-auth=${{ secrets.DOCKER_HUB_USERNAME }}:${{ secrets.DOCKER_HUB_ACCESS_TOKEN }} \
+              --docker-registry-server=docker.io \
+              --type=registry
+            echo "Docker registry secret created"
+          fi
+
+      - name: Deploy to Koyeb
+        id: deploy_action
+        uses: koyeb/action-git-deploy@v1
+        with:
+          app-name: duckdb-spawn-preview-${{ env.BRANCH_NAME }}
+          service-name: api
+          service-type: web
+          docker: docker.io/${{ secrets.DOCKER_HUB_USERNAME }}/duckdb-spawn:preview-${{ env.BRANCH_NAME }}-${{ github.sha }}
+          docker-private-registry-secret: DOCKER_REPO_SECRET
+          service-instance-type: nano
+          service-regions: fra
+          service-env: DATABASE_URL=/data/duckdb_spawn.db PYTHONUNBUFFERED=1 LOG_LEVEL=info ENVIRONMENT=preview
+          service-ports: 8000:http
+          service-routes: /:8000
+          service-checks: 8000:http://monitoring/health
+        continue-on-error: true
+
+      - name: Get App URL
+        id: app_url
+        run: |
+          DOMAIN=$(koyeb app get duckdb-spawn-preview-${{ env.BRANCH_NAME }} -o json | jq -r '.domains[0].domain')
+          echo "APP_URL=https://$DOMAIN" >> $GITHUB_ENV
+          echo "url=https://$DOMAIN" >> $GITHUB_OUTPUT
+
+      - name: Comment on PR with deployment URL
+        uses: actions/github-script@v6
+        with:
+          github-token: ${{secrets.GITHUB_TOKEN}}
+          script: |
+            const domain = '${{ steps.app_url.outputs.url }}';
+            const message = `✅ Preview environment deployed at: ${domain}`;
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: message
+            }); 
